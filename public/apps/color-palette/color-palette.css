@@ -218,7 +218,7 @@ body.density-compact .pcard-hint { display: none; }
    頭（圖 + meta）與 footer 固定、只讓色票列捲動。
    §5.8：Materialize 開 modal 會 inline display:block → flex 做在內層 .modal-content，不動 .modal。
    自適應：短清單不撐高；長清單時 modal-content 觸頂、色票列自己捲。 */
-.detail-modal { max-width: 620px; border-radius: 14px; overflow: hidden; }
+.detail-modal { max-width: 414px; border-radius: 14px; overflow: hidden; }   /* ≈ 原 620 的 2/3 */
 .detail-modal .modal-content {
   color: var(--text);
   display: flex; flex-direction: column;
@@ -256,7 +256,7 @@ body.density-compact .pcard-hint { display: none; }
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: .9rem; text-transform: uppercase; min-width: 84px;
 }
-.detail-ratio { color: var(--muted); font-size: .85rem; margin-left: auto; }
+.detail-ratio { color: var(--muted); font-size: .85rem; margin-left: auto; margin-right: 6px; }   /* 與捲軸留約 5px 間距 */
 .detail-bar {
   flex: 1 1 auto; height: 8px; border-radius: 4px;
   background: var(--surface-2); overflow: hidden; max-width: 180px;
