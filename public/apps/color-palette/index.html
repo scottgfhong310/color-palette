@@ -113,6 +113,21 @@
     </div>
   </div>
 
+  <!-- 燈箱：細看原圖（滾輪縮放 zoom-to-cursor、拖曳平移、雙擊 fit↔放大、Esc/點背景關閉） -->
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <div id="lightbox-stage" class="lightbox-stage">
+      <img id="lightbox-img" class="lightbox-img" alt="" draggable="false" />
+    </div>
+    <div class="lightbox-bar">
+      <span id="lightbox-name" class="lightbox-name"></span>
+      <span id="lightbox-zoom" class="lightbox-zoom"></span>
+      <span class="lightbox-hint" data-i18n="lightbox.hint">滾輪縮放 · 拖曳平移 · 雙擊還原 · Esc 關閉</span>
+      <div id="lightbox-close" class="lightbox-close side-tool" data-i18n-title="lightbox.close" title="關閉">
+        <i class="material-icons">close</i>
+      </div>
+    </div>
+  </div>
+
   <!-- 依賴：jQuery / Materialize / Lodash / ColorPaletteLib -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>

@@ -37,6 +37,9 @@ I18n.register('ja', {
   'detail.close': '閉じる',
   'detail.sub': '{method} · {n} 色 · {size}',
 
+  'lightbox.hint': 'ホイールで拡大 · ドラッグで移動 · ダブルクリックで戻す · Escで閉じる',
+  'lightbox.close': '閉じる',
+
   'toast.notImage': '画像でない {n} 件をスキップ',
   'toast.uploaded': '{n} 枚をアップロード・解析しました',
   'toast.uploadFail': '{n} 枚のアップロード／解析に失敗',

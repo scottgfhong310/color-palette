@@ -37,6 +37,9 @@ I18n.register('zh-Hant', {
   'detail.close': '關閉',
   'detail.sub': '{method} · {n} 色 · {size}',
 
+  'lightbox.hint': '滾輪縮放 · 拖曳平移 · 雙擊還原 · Esc 關閉',
+  'lightbox.close': '關閉',
+
   'toast.notImage': '略過 {n} 個非圖片檔',
   'toast.uploaded': '已上傳並分析 {n} 張',
   'toast.uploadFail': '{n} 張上傳／分析失敗',

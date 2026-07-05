@@ -324,6 +324,85 @@
     M.Modal.getInstance(document.getElementById('detail-modal')).open();
   }
 
+  // ---- 燈箱：細看原圖（縮放/平移的純數學在 lib，這裡只碰 DOM） -------------
+  var lbView = Lib.identityView();
+  var lbDrag = null;                  // { x0, y0, tx0, ty0, moved }
+
+  function applyLbView() {
+    var img = document.getElementById('lightbox-img');
+    img.style.transform = 'translate(' + lbView.tx + 'px,' + lbView.ty + 'px) scale(' + lbView.zoom + ')';
+    document.getElementById('lightbox-zoom').textContent = Math.round(lbView.zoom * 100) + '%';
+  }
+  function openLightbox(name) {
+    var f = findFile(name);
+    if (!f) return;
+    document.getElementById('lightbox-img').src = versionedUrl(f);
+    document.getElementById('lightbox-name').textContent = name;
+    lbView = Lib.identityView();
+    applyLbView();
+    document.getElementById('lightbox').classList.add('show');
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('show');
+    document.getElementById('lightbox-img').src = '';   // 釋放
+  }
+  function lbIsOpen() { return document.getElementById('lightbox').classList.contains('show'); }
+  // 游標相對舞台中心的座標（zoom-to-cursor 用）
+  function lbCenterXY(e, stage) {
+    var r = stage.getBoundingClientRect();
+    return [e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2];
+  }
+
+  function bindLightbox() {
+    var stage = document.getElementById('lightbox-stage');
+    var img = document.getElementById('lightbox-img');
+
+    // 明細縮圖 → 開燈箱
+    $('#detail-image').on('click', function () { if (detailName) openLightbox(detailName); });
+
+    // 滾輪：以游標為錨縮放
+    stage.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var c = lbCenterXY(e, stage);
+      lbView = Lib.zoomAt(lbView, Math.exp(-e.deltaY * 0.0015), c[0], c[1]);
+      applyLbView();
+    }, { passive: false });
+
+    // 拖曳平移（pointer；記錄位移量以區分「點擊背景關閉」）
+    stage.addEventListener('pointerdown', function (e) {
+      lbDrag = { x0: e.clientX, y0: e.clientY, tx0: lbView.tx, ty0: lbView.ty, moved: false };
+      stage.classList.add('grabbing');
+      stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener('pointermove', function (e) {
+      if (!lbDrag) return;
+      var dx = e.clientX - lbDrag.x0, dy = e.clientY - lbDrag.y0;
+      if (Math.abs(dx) + Math.abs(dy) > 3) lbDrag.moved = true;
+      lbView = { zoom: lbView.zoom, tx: lbDrag.tx0 + dx, ty: lbDrag.ty0 + dy };
+      applyLbView();
+    });
+    stage.addEventListener('pointerup', function (e) {
+      var wasDrag = lbDrag && lbDrag.moved;
+      lbDrag = null;
+      stage.classList.remove('grabbing');
+      // 未拖曳、且點在舞台空白處（非圖片本身）→ 關閉
+      if (!wasDrag && e.target === stage) closeLightbox();
+    });
+
+    // 雙擊：fit ↔ 放大到 4× 於游標處
+    img.addEventListener('dblclick', function (e) {
+      var c = lbCenterXY(e, stage);
+      lbView = lbView.zoom > 1.01 ? Lib.identityView() : Lib.zoomAt(Lib.identityView(), 4, c[0], c[1]);
+      applyLbView();
+    });
+
+    document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    // Esc 關閉（capture：先於 Materialize modal 的 Esc，避免同時關掉底下的明細）
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lbIsOpen()) { e.stopImmediatePropagation(); e.preventDefault(); closeLightbox(); }
+    }, true);
+  }
+
   // ---- 事件繫結 ----------------------------------------------------------
   function bind() {
     var picker = document.getElementById('file-picker');
@@ -439,6 +518,7 @@
     });
 
     bindDragDrop();
+    bindLightbox();
     // i18n 切換後：更新工具 title、重繪分區（色系標頭/色軌換語言）、若明細開啟則重繪
     document.addEventListener('i18n:changed', function () {
       updateMethodTool();

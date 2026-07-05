@@ -300,6 +300,29 @@
 
   function isImage(name) { return IMAGE_RE.test(String(name || '')); }
 
+  // ---- 縮放 / 平移（燈箱細看原圖用；移植自 thangka-trace-lib，純函式） --------
+  // View：{ zoom, tx, ty }。zoom＝相對「fit」的倍率（1＝貼合）；tx/ty＝以容器中心為原點的像素平移。
+  // 套用方式（控制器）：img.style.transform = translate(tx px, ty px) scale(zoom)，transform-origin 置中。
+  var ZOOM_MIN = 1;    // 1 = fit（不小於貼合）
+  var ZOOM_MAX = 16;   // 放大上限（像素級細看）
+  function clampNum(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+  function identityView() { return { zoom: 1, tx: 0, ty: 0 }; }
+  // 夾住 zoom 範圍；zoom 回到 1 時平移歸零（貼合、置中）
+  function clampView(view, min, max) {
+    min = min || ZOOM_MIN; max = max || ZOOM_MAX;
+    var z = clampNum(view.zoom, min, max);
+    if (z <= min) return { zoom: min, tx: 0, ty: 0 };
+    return { zoom: z, tx: view.tx, ty: view.ty };
+  }
+  // 以游標為錨縮放（zoom-to-cursor）；cx/cy＝游標相對容器中心的座標
+  function zoomAt(view, factor, cx, cy, min, max) {
+    min = min || ZOOM_MIN; max = max || ZOOM_MAX;
+    var z0 = view.zoom, z1 = clampNum(z0 * factor, min, max);
+    if (z1 === z0) return { zoom: z0, tx: view.tx, ty: view.ty };
+    var ratio = z1 / z0;                                  // c=(p-t)/z 不變 → t1 = p-(p-t0)*z1/z0
+    return clampView({ zoom: z1, tx: cx - (cx - view.tx) * ratio, ty: cy - (cy - view.ty) * ratio }, min, max);
+  }
+
   function bust(url) { return url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(); }
 
   function fileUrl(name) { return STATIC_BASE + encodeURIComponent(name); }
@@ -374,6 +397,11 @@
     fileUrl: fileUrl,
     formatSize: formatSize,
     timestamp: timestamp,
+    ZOOM_MIN: ZOOM_MIN,
+    ZOOM_MAX: ZOOM_MAX,
+    identityView: identityView,
+    clampView: clampView,
+    zoomAt: zoomAt,
     rgbToHex: rgbToHex,
     rgbToHsl: rgbToHsl,
     extractPalette: extractPalette,
