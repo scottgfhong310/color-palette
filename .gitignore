@@ -1,0 +1,17 @@
+# 依賴
+node_modules/
+
+# 系統檔
+.DS_Store
+Thumbs.db
+
+# 編輯器 / 工具
+.vscode/
+.claude/
+
+# 日誌
+*.log
+
+# 上傳的使用者檔（保留資料夾結構，不追蹤內容；registry 亦不進版控）
+/public/upload/color-palette/*
+!/public/upload/color-palette/.gitkeep

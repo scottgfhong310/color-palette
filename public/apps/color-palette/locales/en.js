@@ -1,0 +1,54 @@
+/* English (en) */
+I18n.register('en', {
+  'title.page': 'Color Palette — Image color composition',
+  'empty.title': 'Drag an image anywhere on the page',
+  'empty.hint': 'Images are uploaded to <code>/upload/color-palette</code> (same name overwrites) and analyzed for their main colors;<br />or <u>click to choose an image</u>. Supports <code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.gif</code> / <code>.bmp</code>.',
+  'drop.text': 'Release to upload to /upload/color-palette',
+  'loading': 'Working…',
+
+  'tool.upload': 'Upload image',
+  'tool.method': 'Extraction method',
+  'tool.reanalyze': 'Re-analyze all with current method',
+  'tool.density': 'Browsing density',
+  'tool.mode': 'Toggle light / dark',
+  'tool.lang': 'Language',
+  'tool.clear': 'Clear /upload/color-palette',
+
+  'method.median': 'Color families',
+  'method.frequency': 'By frequency',
+
+  'density.comfortable': 'Thumbnails',
+  'density.compact': 'Swatch wall',
+
+  'family.red': 'Red',
+  'family.orange': 'Orange',
+  'family.yellow': 'Yellow',
+  'family.green': 'Green',
+  'family.cyan': 'Cyan',
+  'family.blue': 'Blue',
+  'family.purple': 'Purple',
+  'family.magenta': 'Magenta',
+  'family.neutral': 'Neutral / gray',
+  'family.pending': 'Not analyzed',
+
+  'card.pending': 'Click to analyze colors',
+
+  'detail.reanalyze': 'Re-analyze',
+  'detail.close': 'Close',
+  'detail.sub': '{method} · {n} colors · {size}',
+
+  'toast.notImage': 'Skipped {n} non-image file(s)',
+  'toast.uploaded': 'Uploaded and analyzed {n} image(s)',
+  'toast.uploadFail': '{n} image(s) failed to upload/analyze',
+  'toast.analyzed': 'Analyzed: {n}',
+  'toast.analyzeFail': 'Analysis failed: {n} ({m})',
+  'toast.lang': 'Switched to {name}',
+  'toast.method': 'Method: {m}',
+  'toast.reanalyzed': 'Re-analyzed {n} image(s)',
+  'toast.noFiles': 'No images to analyze yet',
+  'toast.cleared': 'Cleared {n} file(s)',
+  'toast.clearFail': 'Clear failed: {m}',
+  'toast.listFail': 'Failed to load list: {m}',
+
+  'confirm.clear': 'Clear all images and palettes under /upload/color-palette? This cannot be undone.'
+}, 'English');

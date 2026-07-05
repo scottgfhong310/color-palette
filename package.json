@@ -1,0 +1,23 @@
+{
+  "name": "color-palette",
+  "version": "1.0.0",
+  "description": "上傳圖片、萃取主要顏色組成，把 ≤12 色的色票當作該圖的 alias 的單頁 WebApp（canvas + Express），支援 light/dark 與三語。",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [
+    "color",
+    "palette",
+    "image",
+    "median-cut",
+    "express",
+    "materialize"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.0"
+  }
+}

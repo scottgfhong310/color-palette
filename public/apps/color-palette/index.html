@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="dark">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Color Palette</title>
+
+  <!-- 防主題閃爍：render 前先讀 localStorage 設好 data-theme 與 dark-mode/light-mode class（§5.1 坑） -->
+  <script>
+    try {
+      var t = localStorage.getItem('color-palette-theme') || 'dark';
+      var r = document.documentElement;
+      r.dataset.theme = t;
+      r.classList.toggle('dark-mode', t === 'dark');
+      r.classList.toggle('light-mode', t === 'light');
+    } catch (e) { }
+  </script>
+
+  <!-- Materialize 1.0.0 + Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" />
+  <!-- Materialize 元件深色（家族共用；在 materialize.css 之後、本頁樣式之前） -->
+  <link rel="stylesheet" href="./materialize-dark.css" />
+
+  <link rel="stylesheet" href="./color-palette.css" />
+  <link rel="stylesheet" href="./side-tool.css" />
+</head>
+
+<body class="is-empty" data-i18n-doctitle="title.page">
+
+  <!-- 跳轉色軌：依現有色系動態產生，點一下捲到該色系區段（圖多時導航用）
+       用 <div>（非 <nav>）避免 Materialize 的 nav 樣式把它變成全寬色帶 -->
+  <div id="jump-rail" class="jump-rail" role="navigation" aria-label="色系跳轉"></div>
+
+  <main>
+    <div class="app-container">
+      <!-- 空狀態：可點擊選檔，也接受全頁拖拉 -->
+      <div id="empty-state" class="empty-state">
+        <i class="material-icons">cloud_upload</i>
+        <h5 id="empty-title" data-i18n="empty.title">拖拉圖片到頁面任意位置</h5>
+        <div class="hint" data-i18n-html="empty.hint">
+          圖片會上傳到 <code>/upload/color-palette</code>（同名覆寫），並自動分析主要顏色組成；<br />
+          或 <u>點此選擇圖片</u>。支援 <code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.gif</code> / <code>.bmp</code>。
+        </div>
+      </div>
+
+      <!-- 色票 gallery：每張圖一張卡；有 alias 顯示色塊、沒有顯示檔名 -->
+      <section id="gallery" class="gallery" aria-live="polite"></section>
+    </div>
+  </main>
+
+  <!-- 載入動畫：分析/上傳期間顯示 -->
+  <div id="loading" aria-hidden="true">
+    <div class="spinner"></div>
+    <div class="loading-text" data-i18n="loading">處理中…</div>
+  </div>
+
+  <!-- 全頁拖拉覆蓋層 -->
+  <div id="drop-overlay">
+    <div class="drop-box">
+      <i class="material-icons">cloud_upload</i>
+      <span data-i18n="drop.text">放開以上傳到 /upload/color-palette</span>
+    </div>
+  </div>
+
+  <!-- 隱藏的檔案選擇器（點擊空狀態時觸發） -->
+  <input type="file" id="file-picker" multiple
+    accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.png,.jpg,.jpeg,.webp,.gif,.bmp"
+    style="display:none;" />
+
+  <!-- ===== 右側工具列（flex 容器：正統版） ===== -->
+  <div class="side-tools">
+    <div id="setting-upload" class="side-tool" data-i18n-title="tool.upload" title="上傳圖片">
+      <i class="material-icons">cloud_upload</i>
+    </div>
+    <div id="setting-method" class="side-tool" data-i18n-title="tool.method" title="萃取法：色族 / 頻率">
+      <i class="material-icons">auto_fix_high</i>
+    </div>
+    <div id="setting-reanalyze" class="side-tool" data-i18n-title="tool.reanalyze" title="以目前萃取法重新分析全部">
+      <i class="material-icons">refresh</i>
+    </div>
+    <div id="setting-density" class="side-tool" data-i18n-title="tool.density" title="瀏覽密度：縮圖 / 色票牆">
+      <i class="material-icons">view_module</i>
+    </div>
+    <div id="setting-mode" class="side-tool" data-i18n-title="tool.mode" title="切換 light / dark">
+      <i class="material-icons">dark_mode</i>
+    </div>
+    <div id="setting-lang" class="side-tool" data-i18n-title="tool.lang" title="Language">
+      <i class="material-icons">translate</i>
+    </div>
+    <div id="setting-clear" class="side-tool" data-i18n-title="tool.clear" title="清空 /upload/color-palette">
+      <i class="material-icons">delete_sweep</i>
+    </div>
+  </div>
+
+  <!-- 色票明細 Modal：點擊已分析的卡開啟，顯示原圖 + 各色 hex / 佔比 -->
+  <div id="detail-modal" class="modal detail-modal">
+    <div class="modal-content">
+      <div class="detail-head">
+        <img id="detail-image" class="detail-image" alt="" />
+        <div class="detail-meta">
+          <div id="detail-name" class="detail-name"></div>
+          <div id="detail-sub" class="detail-sub"></div>
+        </div>
+      </div>
+      <ul id="detail-list" class="detail-list"></ul>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" id="detail-reanalyze" class="waves-effect btn-flat" data-i18n="detail.reanalyze">重新分析</a>
+      <a href="#!" class="modal-close waves-effect btn-flat" data-i18n="detail.close">關閉</a>
+    </div>
+  </div>
+
+  <!-- 依賴：jQuery / Materialize / Lodash / ColorPaletteLib -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="./color-palette-lib.js"></script>
+
+  <!-- i18n 引擎 + 語言字典（先引擎再各語系；新增語言＝多一個 locale 檔） -->
+  <script src="./i18n.js"></script>
+  <script src="./locales/zh-Hant.js"></script>
+  <script src="./locales/en.js"></script>
+  <script src="./locales/ja.js"></script>
+
+  <script src="./color-palette.js"></script>
+</body>
+
+</html>
