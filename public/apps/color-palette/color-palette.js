@@ -357,19 +357,19 @@
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('show');
     document.getElementById('lightbox-img').src = '';   // 釋放
-    clearMask(); hidePick(); lbSample = null;
+    clearMask(); hidePick(); hideLoupe(); lbSample = null;
   }
   function lbIsOpen() { return document.getElementById('lightbox').classList.contains('show'); }
 
-  // 離屏畫圖 → 取像素（限最長邊 900px，供滴管與 mask 分類；同源不會 taint）
+  // 離屏畫圖 → 取像素（限最長邊 1400px，供滴管/放大鏡/mask 分類；同源不會 taint）
   function prepLbSample(img) {
     var nw = img.naturalWidth, nh = img.naturalHeight;
-    var s = Math.min(1, 900 / Math.max(nw, nh));
+    var s = Math.min(1, 1400 / Math.max(nw, nh));
     var w = Math.max(1, Math.round(nw * s)), h = Math.max(1, Math.round(nh * s));
     var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     var ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(img, 0, 0, w, h);
-    try { lbSample = { data: ctx.getImageData(0, 0, w, h).data, w: w, h: h }; }
+    try { lbSample = { cv: cv, data: ctx.getImageData(0, 0, w, h).data, w: w, h: h }; }
     catch (e) { lbSample = null; }
   }
 
@@ -396,17 +396,52 @@
     if (idx >= 0) $('#lightbox-palette .lb-swatch[data-idx="' + idx + '"]').addClass('hot');
   }
 
-  // 滴管：由游標取原圖像素色 → 顯示讀值 + 亮最近色票
-  function eyedrop(clientX, clientY) {
-    if (!lbSample || !lbColors.length) return;
-    var r = document.getElementById('lightbox-img').getBoundingClientRect();
-    if (clientX < r.left || clientX > r.right || clientY < r.top || clientY > r.bottom) { hidePick(); return; }
-    var px = Math.min(lbSample.w - 1, Math.max(0, Math.floor((clientX - r.left) / r.width * lbSample.w)));
-    var py = Math.min(lbSample.h - 1, Math.max(0, Math.floor((clientY - r.top) / r.height * lbSample.h)));
+  // 螢幕座標 → 取樣像素（經 img rect，已含縮放/平移）；回 {px,py,r,g,b,hex} 或 null
+  function lbSampleAt(clientX, clientY) {
+    if (!lbSample) return null;
+    var rect = document.getElementById('lightbox-img').getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return null;
+    var u = (clientX - rect.left) / rect.width, v = (clientY - rect.top) / rect.height;
+    if (u < 0 || u > 1 || v < 0 || v > 1) return null;
+    var px = Math.max(0, Math.min(lbSample.w - 1, Math.round(u * lbSample.w)));
+    var py = Math.max(0, Math.min(lbSample.h - 1, Math.round(v * lbSample.h)));
     var o = (py * lbSample.w + px) * 4, d = lbSample.data;
-    showPick(Lib.rgbToHex(d[o], d[o + 1], d[o + 2]));
-    setHotSwatch(Lib.nearestSwatchIndex(d[o], d[o + 1], d[o + 2], lbColors));
+    return { px: px, py: py, r: d[o], g: d[o + 1], b: d[o + 2], hex: Lib.rgbToHex(d[o], d[o + 1], d[o + 2]) };
   }
+
+  // 滴管：由游標取像素色 → 讀值 + 亮最近色票 + 更新放大鏡
+  function eyedrop(clientX, clientY) {
+    if (!lbColors.length) { hideLoupe(); return; }
+    var s = lbSampleAt(clientX, clientY);
+    if (!s) { hidePick(); hideLoupe(); return; }
+    showPick(s.hex);
+    setHotSwatch(Lib.nearestSwatchIndex(s.r, s.g, s.b, lbColors));
+    updateLoupe(s, clientX, clientY);
+  }
+
+  // 放大鏡：從取樣 canvas 放大 15px 窗、畫十字準星、hex，跟隨游標（比照 thangka-trace）
+  function updateLoupe(s, cx, cy) {
+    if (!lbSample || !lbSample.cv) return;
+    var cv = document.getElementById('loupe-canvas'), ctx = cv.getContext('2d');
+    var span = 15, half = (span - 1) / 2;
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(lbSample.cv, s.px - half, s.py - half, span, span, 0, 0, cv.width, cv.height);
+    var cell = cv.width / span;                       // 中央那格＝取樣像素，畫黑/白雙框準星
+    ctx.strokeStyle = 'rgba(0,0,0,.85)'; ctx.lineWidth = 1;
+    ctx.strokeRect(half * cell + 0.5, half * cell + 0.5, cell - 1, cell - 1);
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.strokeRect(half * cell - 0.5, half * cell - 0.5, cell + 1, cell + 1);
+    document.getElementById('loupe-hex').textContent = s.hex;
+    var lw = 150, lh = 176, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向
+    if (left + lw > window.innerWidth) left = cx - 20 - lw;
+    if (top + lh > window.innerHeight) top = cy - 20 - lh;
+    var el = document.getElementById('picker-loupe');
+    el.style.left = Math.max(4, left) + 'px';
+    el.style.top = Math.max(4, top) + 'px';
+    el.classList.add('show');
+  }
+  function hideLoupe() { document.getElementById('picker-loupe').classList.remove('show'); }
 
   // 色塊定位：把「最近色票＝idx」的像素透出、其餘變暗（mask 疊在圖上、共用 frame transform）
   function showMask(idx) {
@@ -459,16 +494,16 @@
       stage.setPointerCapture(e.pointerId);
     });
     stage.addEventListener('pointermove', function (e) {
-      if (lbDrag) {                       // 拖曳中 → 平移
+      if (lbDrag) {                       // 拖曳中 → 平移（藏放大鏡）
         var dx = e.clientX - lbDrag.x0, dy = e.clientY - lbDrag.y0;
         if (Math.abs(dx) + Math.abs(dy) > 3) lbDrag.moved = true;
         lbView = { zoom: lbView.zoom, tx: lbDrag.tx0 + dx, ty: lbDrag.ty0 + dy };
-        applyLbView();
-      } else {                            // 未拖曳 → 滴管取色
+        applyLbView(); hideLoupe();
+      } else {                            // 未拖曳 → 滴管取色 + 放大鏡
         eyedrop(e.clientX, e.clientY);
       }
     });
-    stage.addEventListener('pointerleave', hidePick);
+    stage.addEventListener('pointerleave', function () { hidePick(); hideLoupe(); });
     stage.addEventListener('pointerup', function (e) {
       var wasDrag = lbDrag && lbDrag.moved;
       lbDrag = null;

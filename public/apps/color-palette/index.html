@@ -125,8 +125,7 @@
     </div>
     <!-- 色票側欄：頂部＝取色器（colorize icon + 目前取得的顏色）；下方＝色票列 -->
     <div id="lightbox-palette" class="lightbox-palette" aria-label="palette">
-      <div class="lb-pal-head" data-i18n-title="lightbox.picker" title="取色器">
-        <i class="material-icons">colorize</i>
+      <div class="lb-pal-head">
         <span id="lightbox-pick" class="lightbox-pick" hidden>
           <span class="lightbox-pick-chip"></span><span class="lightbox-pick-hex"></span>
         </span>
@@ -141,6 +140,11 @@
       <div id="lightbox-close" class="lightbox-close side-tool" data-i18n-title="lightbox.close" title="關閉">
         <i class="material-icons">close</i>
       </div>
+    </div>
+    <!-- 取色放大鏡：跟隨游標、顯示放大像素 + 十字準星 + 即時 hex（比照 thangka-trace） -->
+    <div id="picker-loupe" class="picker-loupe" aria-hidden="true">
+      <canvas id="loupe-canvas" width="132" height="132"></canvas>
+      <div id="loupe-hex" class="loupe-hex"></div>
     </div>
   </div>
 

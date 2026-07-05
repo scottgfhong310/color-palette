@@ -277,7 +277,7 @@ body.density-compact .pcard-hint { display: none; }
 .lightbox-stage {
   position: absolute; left: 0; top: 0; bottom: 0; right: 148px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  cursor: grab; touch-action: none;
+  cursor: crosshair; touch-action: none;                 /* 取色：十字游標 */
 }
 .lightbox-stage.grabbing { cursor: grabbing; }
 .lightbox-frame {
@@ -309,7 +309,6 @@ body.density-compact .pcard-hint { display: none; }
   padding: 10px 12px; color: #fff;
   border-bottom: 1px solid rgba(255,255,255,.10);
 }
-.lb-pal-head > i.material-icons { font-size: 20px; opacity: .9; flex: 0 0 auto; }
 .lb-pal-idle { font-size: .74rem; opacity: .6; }
 #lightbox-pick:not([hidden]) ~ .lb-pal-idle { display: none; }   /* 取到色就藏提示 */
 /* 色票列（可捲） */
@@ -357,6 +356,26 @@ body.density-compact .pcard-hint { display: none; }
 .lightbox-hint { font-size: .78rem; opacity: .7; margin-left: auto; }
 .lightbox-close { pointer-events: auto; flex: 0 0 auto; }
 @media (max-width: 720px) { .lightbox-hint { display: none; } }
+
+/* 取色放大鏡（跟隨游標；放大像素 + 十字準星 + hex） */
+.picker-loupe {
+  position: fixed; z-index: 3100; pointer-events: none;
+  display: none; flex-direction: column; align-items: center;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,.45));
+}
+.picker-loupe.show { display: flex; }
+#loupe-canvas {
+  width: 132px; height: 132px; border-radius: 50%;
+  border: 3px solid #fff; background: #000;
+  image-rendering: pixelated;
+}
+.loupe-hex {
+  margin-top: 6px; padding: 2px 8px; border-radius: 6px;
+  background: rgba(10,14,22,.9); color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .78rem; letter-spacing: .04em; text-transform: uppercase;
+  border: 1px solid rgba(255,255,255,.25);
+}
 
 /* ===== 載入動畫 ===== */
 #loading {
