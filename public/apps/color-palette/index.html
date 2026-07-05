@@ -113,10 +113,26 @@
     </div>
   </div>
 
-  <!-- 燈箱：細看原圖（滾輪縮放 zoom-to-cursor、拖曳平移、雙擊 fit↔放大、Esc/點背景關閉） -->
+  <!-- 燈箱：細看原圖（滾輪縮放 zoom-to-cursor、拖曳平移、雙擊 fit↔放大、Esc/點背景關閉）
+       ＋色票互動：滑鼠在圖上→亮對應色票（滴管）；點色票→圖上亮該色區域（mask 疊層跟同一 transform） -->
   <div id="lightbox" class="lightbox" aria-hidden="true">
     <div id="lightbox-stage" class="lightbox-stage">
-      <img id="lightbox-img" class="lightbox-img" alt="" draggable="false" />
+      <!-- frame 承載 transform；img 與 mask 同框對位 -->
+      <div id="lightbox-frame" class="lightbox-frame">
+        <img id="lightbox-img" class="lightbox-img" alt="" draggable="false" />
+        <canvas id="lightbox-mask" class="lightbox-mask"></canvas>
+      </div>
+    </div>
+    <!-- 色票側欄：頂部＝取色器（colorize icon + 目前取得的顏色）；下方＝色票列 -->
+    <div id="lightbox-palette" class="lightbox-palette" aria-label="palette">
+      <div class="lb-pal-head" data-i18n-title="lightbox.picker" title="取色器">
+        <i class="material-icons">colorize</i>
+        <span id="lightbox-pick" class="lightbox-pick" hidden>
+          <span class="lightbox-pick-chip"></span><span class="lightbox-pick-hex"></span>
+        </span>
+        <span class="lb-pal-idle" data-i18n="lightbox.pickIdle">滑過圖片取色</span>
+      </div>
+      <div id="lightbox-swatches" class="lb-swatches"></div>
     </div>
     <div class="lightbox-bar">
       <span id="lightbox-name" class="lightbox-name"></span>

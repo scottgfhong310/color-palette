@@ -37,8 +37,10 @@ I18n.register('en', {
   'detail.close': 'Close',
   'detail.sub': '{method} · {n} colors · {size}',
 
-  'lightbox.hint': 'Scroll to zoom · drag to pan · double-click to reset · Esc to close',
+  'lightbox.hint': 'Scroll to zoom · drag to pan · hover to pick · click a swatch to locate · Esc to close',
   'lightbox.close': 'Close',
+  'lightbox.picker': 'Color picker',
+  'lightbox.pickIdle': 'Hover the image to pick',
 
   'toast.notImage': 'Skipped {n} non-image file(s)',
   'toast.uploaded': 'Uploaded and analyzed {n} image(s)',

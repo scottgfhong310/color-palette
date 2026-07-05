@@ -324,29 +324,113 @@
     M.Modal.getInstance(document.getElementById('detail-modal')).open();
   }
 
-  // ---- 燈箱：細看原圖（縮放/平移的純數學在 lib，這裡只碰 DOM） -------------
+  // ---- 燈箱：細看原圖 ＋ 色票互動（縮放/色距的純數學在 lib，這裡碰 DOM/canvas） --
   var lbView = Lib.identityView();
   var lbDrag = null;                  // { x0, y0, tx0, ty0, moved }
+  var lbColors = [];                  // 目前圖的色票 [{r,g,b,hex,...}]
+  var lbSample = null;                // 離屏取樣：{ data, w, h }（getImageData）
+  var lbActiveIdx = -1;               // 目前定位中的色票 index（mask）
 
   function applyLbView() {
-    var img = document.getElementById('lightbox-img');
-    img.style.transform = 'translate(' + lbView.tx + 'px,' + lbView.ty + 'px) scale(' + lbView.zoom + ')';
+    document.getElementById('lightbox-frame').style.transform =
+      'translate(' + lbView.tx + 'px,' + lbView.ty + 'px) scale(' + lbView.zoom + ')';
     document.getElementById('lightbox-zoom').textContent = Math.round(lbView.zoom * 100) + '%';
   }
   function openLightbox(name) {
     var f = findFile(name);
     if (!f) return;
-    document.getElementById('lightbox-img').src = versionedUrl(f);
-    document.getElementById('lightbox-name').textContent = name;
+    lbColors = (f.alias && f.alias.colors) || [];
     lbView = Lib.identityView();
+    clearMask();
+    buildLbPalette();
+    hidePick();
+    var img = document.getElementById('lightbox-img');
+    lbSample = null;
+    var onLoad = function () { if (img.naturalWidth) prepLbSample(img); };
+    img.onload = onLoad;
+    img.src = versionedUrl(f);
+    if (img.complete && img.naturalWidth) onLoad();   // 快取命中時 onload 可能不觸發
+    document.getElementById('lightbox-name').textContent = name;
     applyLbView();
     document.getElementById('lightbox').classList.add('show');
   }
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('show');
     document.getElementById('lightbox-img').src = '';   // 釋放
+    clearMask(); hidePick(); lbSample = null;
   }
   function lbIsOpen() { return document.getElementById('lightbox').classList.contains('show'); }
+
+  // 離屏畫圖 → 取像素（限最長邊 900px，供滴管與 mask 分類；同源不會 taint）
+  function prepLbSample(img) {
+    var nw = img.naturalWidth, nh = img.naturalHeight;
+    var s = Math.min(1, 900 / Math.max(nw, nh));
+    var w = Math.max(1, Math.round(nw * s)), h = Math.max(1, Math.round(nh * s));
+    var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    var ctx = cv.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, w, h);
+    try { lbSample = { data: ctx.getImageData(0, 0, w, h).data, w: w, h: h }; }
+    catch (e) { lbSample = null; }
+  }
+
+  // 建色票側欄（依 alias 色票，已 hue 排序）；只清色票列，保留頂部取色器
+  function buildLbPalette() {
+    var $p = $('#lightbox-swatches').empty();
+    lbColors.forEach(function (c, i) {
+      $('<div class="lb-swatch">').attr('data-idx', i)
+        .append($('<span class="chip">').css('background', c.hex))
+        .append($('<span class="hex">').text(c.hex))
+        .appendTo($p);
+    });
+  }
+
+  // 滴管讀值列
+  function showPick(hex) {
+    var $p = $('#lightbox-pick').prop('hidden', false);
+    $p.find('.lightbox-pick-chip').css('background', hex);
+    $p.find('.lightbox-pick-hex').text(hex);
+  }
+  function hidePick() { $('#lightbox-pick').prop('hidden', true); setHotSwatch(-1); }
+  function setHotSwatch(idx) {
+    $('#lightbox-palette .lb-swatch').removeClass('hot');
+    if (idx >= 0) $('#lightbox-palette .lb-swatch[data-idx="' + idx + '"]').addClass('hot');
+  }
+
+  // 滴管：由游標取原圖像素色 → 顯示讀值 + 亮最近色票
+  function eyedrop(clientX, clientY) {
+    if (!lbSample || !lbColors.length) return;
+    var r = document.getElementById('lightbox-img').getBoundingClientRect();
+    if (clientX < r.left || clientX > r.right || clientY < r.top || clientY > r.bottom) { hidePick(); return; }
+    var px = Math.min(lbSample.w - 1, Math.max(0, Math.floor((clientX - r.left) / r.width * lbSample.w)));
+    var py = Math.min(lbSample.h - 1, Math.max(0, Math.floor((clientY - r.top) / r.height * lbSample.h)));
+    var o = (py * lbSample.w + px) * 4, d = lbSample.data;
+    showPick(Lib.rgbToHex(d[o], d[o + 1], d[o + 2]));
+    setHotSwatch(Lib.nearestSwatchIndex(d[o], d[o + 1], d[o + 2], lbColors));
+  }
+
+  // 色塊定位：把「最近色票＝idx」的像素透出、其餘變暗（mask 疊在圖上、共用 frame transform）
+  function showMask(idx) {
+    if (!lbSample) return;
+    var mask = document.getElementById('lightbox-mask');
+    mask.width = lbSample.w; mask.height = lbSample.h;
+    var mctx = mask.getContext('2d');
+    var out = mctx.createImageData(lbSample.w, lbSample.h);
+    var src = lbSample.data, od = out.data;
+    for (var i = 0; i < src.length; i += 4) {
+      if (Lib.nearestSwatchIndex(src[i], src[i + 1], src[i + 2], lbColors) === idx) {
+        od[i + 3] = 0;                                   // 匹配：透明（原圖透出）
+      } else { od[i] = 8; od[i + 1] = 10; od[i + 2] = 14; od[i + 3] = 194; }  // 其餘：暗遮
+    }
+    mctx.putImageData(out, 0, 0);
+    mask.classList.add('show');
+    lbActiveIdx = idx;
+    $('#lightbox-palette .lb-swatch').removeClass('active').filter('[data-idx="' + idx + '"]').addClass('active');
+  }
+  function clearMask() {
+    document.getElementById('lightbox-mask').classList.remove('show');
+    lbActiveIdx = -1;
+    $('#lightbox-palette .lb-swatch').removeClass('active');
+  }
   // 游標相對舞台中心的座標（zoom-to-cursor 用）
   function lbCenterXY(e, stage) {
     var r = stage.getBoundingClientRect();
@@ -375,18 +459,28 @@
       stage.setPointerCapture(e.pointerId);
     });
     stage.addEventListener('pointermove', function (e) {
-      if (!lbDrag) return;
-      var dx = e.clientX - lbDrag.x0, dy = e.clientY - lbDrag.y0;
-      if (Math.abs(dx) + Math.abs(dy) > 3) lbDrag.moved = true;
-      lbView = { zoom: lbView.zoom, tx: lbDrag.tx0 + dx, ty: lbDrag.ty0 + dy };
-      applyLbView();
+      if (lbDrag) {                       // 拖曳中 → 平移
+        var dx = e.clientX - lbDrag.x0, dy = e.clientY - lbDrag.y0;
+        if (Math.abs(dx) + Math.abs(dy) > 3) lbDrag.moved = true;
+        lbView = { zoom: lbView.zoom, tx: lbDrag.tx0 + dx, ty: lbDrag.ty0 + dy };
+        applyLbView();
+      } else {                            // 未拖曳 → 滴管取色
+        eyedrop(e.clientX, e.clientY);
+      }
     });
+    stage.addEventListener('pointerleave', hidePick);
     stage.addEventListener('pointerup', function (e) {
       var wasDrag = lbDrag && lbDrag.moved;
       lbDrag = null;
       stage.classList.remove('grabbing');
       // 未拖曳、且點在舞台空白處（非圖片本身）→ 關閉
       if (!wasDrag && e.target === stage) closeLightbox();
+    });
+
+    // 色票側欄：點色票 → 在圖上定位該色區域（再點同一個 → 取消）
+    $('#lightbox-palette').on('click', '.lb-swatch', function () {
+      var idx = +$(this).attr('data-idx');
+      if (lbActiveIdx === idx) clearMask(); else showMask(idx);
     });
 
     // 雙擊：fit ↔ 放大到 4× 於游標處

@@ -37,8 +37,10 @@ I18n.register('ja', {
   'detail.close': '閉じる',
   'detail.sub': '{method} · {n} 色 · {size}',
 
-  'lightbox.hint': 'ホイールで拡大 · ドラッグで移動 · ダブルクリックで戻す · Escで閉じる',
+  'lightbox.hint': 'ホイールで拡大 · ドラッグで移動 · カーソルで色取得 · 色票クリックで領域表示 · Escで閉じる',
   'lightbox.close': '閉じる',
+  'lightbox.picker': 'スポイト',
+  'lightbox.pickIdle': '画像にカーソルで色取得',
 
   'toast.notImage': '画像でない {n} 件をスキップ',
   'toast.uploaded': '{n} 枚をアップロード・解析しました',

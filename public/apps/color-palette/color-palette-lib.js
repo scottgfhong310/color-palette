@@ -300,6 +300,23 @@
 
   function isImage(name) { return IMAGE_RE.test(String(name || '')); }
 
+  // ---- 色距 / 找最近色票（滴管、色塊定位用；移植自 thangka-trace-lib，純函式） ----
+  // redmean 加權色距（平方）——比純 RGB 歐氏更接近人眼感知
+  function colorDist2(r1, g1, b1, r2, g2, b2) {
+    var rmean = (r1 + r2) / 2, dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
+    return (2 + rmean / 256) * dr * dr + 4 * dg * dg + (2 + (255 - rmean) / 256) * db * db;
+  }
+  // 在色票（[{r,g,b}...]）中找最接近 (r,g,b) 的索引；找不到回 -1
+  function nearestSwatchIndex(r, g, b, colors) {
+    if (!colors || !colors.length) return -1;
+    var best = -1, bestD = Infinity;
+    for (var i = 0; i < colors.length; i++) {
+      var c = colors[i], d = colorDist2(r, g, b, c.r, c.g, c.b);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    return best;
+  }
+
   // ---- 縮放 / 平移（燈箱細看原圖用；移植自 thangka-trace-lib，純函式） --------
   // View：{ zoom, tx, ty }。zoom＝相對「fit」的倍率（1＝貼合）；tx/ty＝以容器中心為原點的像素平移。
   // 套用方式（控制器）：img.style.transform = translate(tx px, ty px) scale(zoom)，transform-origin 置中。
@@ -397,6 +414,8 @@
     fileUrl: fileUrl,
     formatSize: formatSize,
     timestamp: timestamp,
+    colorDist2: colorDist2,
+    nearestSwatchIndex: nearestSwatchIndex,
     ZOOM_MIN: ZOOM_MIN,
     ZOOM_MAX: ZOOM_MAX,
     identityView: identityView,
