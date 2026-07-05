@@ -214,10 +214,23 @@ body.density-compact .pcard-hint { display: none; }
 /* 尚未分析的卡：色塊區以虛線佔位 */
 .pcard.is-pending .pcard-body { display: flex; flex-direction: column; }
 
-/* ===== 明細 Modal ===== */
-.detail-modal { max-width: 620px; border-radius: 14px; }
-.detail-modal .modal-content { color: var(--text); }
-.detail-head { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+/* ===== 明細 Modal =====
+   頭（圖 + meta）與 footer 固定、只讓色票列捲動。
+   §5.8：Materialize 開 modal 會 inline display:block → flex 做在內層 .modal-content，不動 .modal。
+   自適應：短清單不撐高；長清單時 modal-content 觸頂、色票列自己捲。 */
+.detail-modal { max-width: 620px; border-radius: 14px; overflow: hidden; }
+.detail-modal .modal-content {
+  color: var(--text);
+  display: flex; flex-direction: column;
+  max-height: calc(70vh - 56px);   /* 70vh＝Materialize .modal max-height；56px 預留給固定 footer */
+  overflow: hidden;                /* modal-content 本身不捲，捲動交給內部的 .detail-list */
+}
+.detail-head {
+  flex: 0 0 auto;                  /* 固定：不隨色票列捲動 */
+  display: flex; gap: 14px; align-items: center;
+  margin: 0 0 14px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
 .detail-image {
   width: 120px; height: 120px; object-fit: cover;
   border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2);
@@ -225,7 +238,11 @@ body.density-compact .pcard-hint { display: none; }
 .detail-name { font-size: 1rem; font-weight: 500; word-break: break-all; }
 .detail-sub { font-size: .82rem; color: var(--muted); margin-top: 4px; }
 
-.detail-list { margin: 0; }
+.detail-list {
+  margin: 0;
+  flex: 1 1 auto; min-height: 0;   /* 可縮才會出現捲軸 */
+  overflow-y: auto;                /* 唯一捲動區 */
+}
 .detail-list li {
   display: flex; align-items: center; gap: 12px;
   padding: 7px 0; border-bottom: 1px solid var(--border);
