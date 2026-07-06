@@ -571,6 +571,22 @@
         .catch(function (err) { hideLoading(); toast('toast.analyzeFail', 'red', { n: f.name, m: err.message }); });
     });
 
+    // 明細 → 刪除這一張圖（連同 registry alias）；確認後關明細/燈箱並重整
+    $('#detail-delete').on('click', function () {
+      var name = detailName;
+      if (!name) return;
+      if (!confirm(I18n.t('confirm.deleteOne', { n: name }))) return;
+      showLoading();
+      Lib.deleteFile(name)
+        .then(function () {
+          if (lbIsOpen()) closeLightbox();
+          var mi = M.Modal.getInstance(document.getElementById('detail-modal')); if (mi) mi.close();
+          return refresh();
+        })
+        .then(function () { hideLoading(); toast('toast.deleted', 'green', { n: name }); })
+        .catch(function (err) { hideLoading(); toast('toast.deleteFail', 'red', { m: err.message }); });
+    });
+
     // 萃取法切換（median ↔ frequency）
     $('#setting-method').on('click', function () {
       var idx = Lib.METHODS.indexOf(method);

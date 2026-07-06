@@ -162,6 +162,23 @@ router.post('/alias', async (req, res) => {
   }
 });
 
+// POST /api/color-palette/delete — 刪除單一檔案（連同其 registry alias）
+// body: { name }
+router.post('/delete', async (req, res) => {
+  const name = sanitizeName(req.body && req.body.name);
+  if (!name) return res.status(400).json({ ok: false, error: '不允許的檔名' });
+  try {
+    await fs.unlink(path.join(UPLOAD_DIR, name)).catch((e) => { if (e.code !== 'ENOENT') throw e; });
+    const reg = await readRegistry();
+    if (Object.prototype.hasOwnProperty.call(reg, name)) { delete reg[name]; await writeRegistry(reg); }
+    console.log('[color-palette] POST /delete →', name);
+    return res.json({ ok: true, name });
+  } catch (err) {
+    console.error('[color-palette] POST /delete failed:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // POST /api/color-palette/clear — 清空資料夾下所有可見檔案，並清空 registry
 router.post('/clear', async (req, res) => {
   try {

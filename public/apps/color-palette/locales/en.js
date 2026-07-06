@@ -35,6 +35,10 @@ I18n.register('en', {
 
   'detail.reanalyze': 'Re-analyze',
   'detail.close': 'Close',
+  'detail.delete': 'Delete',
+  'confirm.deleteOne': 'Delete “{n}”? This cannot be undone.',
+  'toast.deleted': 'Deleted: {n}',
+  'toast.deleteFail': 'Delete failed: {m}',
   'detail.sub': '{method} · {n} colors · {size}',
 
   'lightbox.hint': 'Scroll to zoom · drag to pan · hover to pick · click a swatch to locate · Esc to close',

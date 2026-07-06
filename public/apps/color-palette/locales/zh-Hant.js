@@ -35,6 +35,10 @@ I18n.register('zh-Hant', {
 
   'detail.reanalyze': '重新分析',
   'detail.close': '關閉',
+  'detail.delete': '刪除',
+  'confirm.deleteOne': '確定刪除「{n}」？此動作無法復原。',
+  'toast.deleted': '已刪除：{n}',
+  'toast.deleteFail': '刪除失敗：{m}',
   'detail.sub': '{method} · {n} 色 · {size}',
 
   'lightbox.hint': '滾輪縮放 · 拖曳平移 · 滑過取色 · 點色票定位 · Esc 關閉',

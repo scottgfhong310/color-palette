@@ -39,6 +39,7 @@
   var UPLOAD_API = '/api/upload?folder=' + FOLDER;
   var FILES_API = '/api/color-palette/files';
   var ALIAS_API = '/api/color-palette/alias';
+  var DELETE_API = '/api/color-palette/delete';
   var CLEAR_API = '/api/color-palette/clear';
   var STATIC_BASE = '/upload/' + FOLDER + '/';
 
@@ -320,7 +321,7 @@
   // ---- 縮放 / 平移（燈箱細看原圖用；移植自 thangka-trace-lib，純函式） --------
   // View：{ zoom, tx, ty }。zoom＝相對「fit」的倍率（1＝貼合）；tx/ty＝以容器中心為原點的像素平移。
   // 套用方式（控制器）：img.style.transform = translate(tx px, ty px) scale(zoom)，transform-origin 置中。
-  var ZOOM_MIN = 1;    // 1 = fit（不小於貼合）
+  var ZOOM_MIN = 0.2;  // 可縮到 fit 的 20%（大圖也能看得更小）；1 = fit（貼合）
   var ZOOM_MAX = 16;   // 放大上限（像素級細看）
   function clampNum(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
   function identityView() { return { zoom: 1, tx: 0, ty: 0 }; }
@@ -406,6 +407,20 @@
       });
   }
 
+  // 刪除單一檔案（連同其 registry alias）
+  function deleteFile(name) {
+    return fetch(DELETE_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name })
+    })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (d) {
+        if (!d || !d.ok) throw new Error((d && d.error) || '刪除失敗');
+        return d;
+      });
+  }
+
   window.ColorPaletteLib = {
     FOLDER: FOLDER,
     MAX_COLORS: MAX_COLORS,
@@ -434,6 +449,7 @@
     uploadFile: uploadFile,
     listFiles: listFiles,
     saveAlias: saveAlias,
+    deleteFile: deleteFile,
     clearFolder: clearFolder
   };
 })(window);

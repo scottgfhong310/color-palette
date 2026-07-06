@@ -35,6 +35,10 @@ I18n.register('ja', {
 
   'detail.reanalyze': '再解析',
   'detail.close': '閉じる',
+  'detail.delete': '削除',
+  'confirm.deleteOne': '「{n}」を削除しますか？この操作は取り消せません。',
+  'toast.deleted': '削除しました：{n}',
+  'toast.deleteFail': '削除に失敗：{m}',
   'detail.sub': '{method} · {n} 色 · {size}',
 
   'lightbox.hint': 'ホイールで拡大 · ドラッグで移動 · カーソルで色取得 · 色票クリックで領域表示 · Escで閉じる',

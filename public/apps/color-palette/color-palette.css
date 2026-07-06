@@ -243,6 +243,9 @@ body.density-compact .pcard-hint { display: none; }
   flex: 1 1 auto; min-height: 0;   /* 可縮才會出現捲軸 */
   overflow-y: auto;                /* 唯一捲動區 */
 }
+/* footer 的「刪除這一張圖」：靠左、hover 轉紅（警示） */
+.detail-delete-btn { float: left; }
+.detail-delete-btn:hover { color: #ff6e6e; }
 .detail-list li {
   display: flex; align-items: center; gap: 12px;
   padding: 7px 0; border-bottom: 1px solid var(--border);
