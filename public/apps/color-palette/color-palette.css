@@ -374,11 +374,33 @@ body.density-compact .pcard-hint { display: none; }
 }
 .loupe-hex {
   margin-top: 6px; padding: 2px 8px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
   background: rgba(10,14,22,.9); color: #fff;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: .78rem; letter-spacing: .04em; text-transform: uppercase;
   border: 1px solid rgba(255,255,255,.25);
 }
+
+/* ===== 最接近 Faber-Castell 色（≈ FC）標籤 ===== */
+.fc-near {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .74rem; color: var(--muted); text-transform: none; letter-spacing: 0;
+  white-space: nowrap;
+}
+.fc-near-chip { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--border); flex: 0 0 auto; }
+.fc-near-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); }
+.fc-near-name { color: var(--muted); overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
+.fc-near-de { font-family: ui-monospace, monospace; font-size: .7rem; }
+.fc-alts { display: inline-flex; gap: 3px; margin-left: 2px; }
+.fc-alt { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--border); }
+/* 明細每列：讓 ≈FC 標籤換到色塊下方自成一行 */
+.detail-list li { flex-wrap: wrap; }
+.detail-list .fc-near { flex-basis: 100%; margin-left: 46px; margin-top: 1px; }
+/* 燈箱取色列與放大鏡的 FC 行 */
+.lightbox-pick-fc, .loupe-fc { display: inline-flex; }
+.loupe-fc .fc-near { color: rgba(255,255,255,.8); }
+.loupe-fc .fc-near-code, .loupe-fc .fc-near-name { color: #fff; }
+.loupe-fc .fc-near-name { max-width: 96px; }
 
 /* ===== 載入動畫 ===== */
 #loading {

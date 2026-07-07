@@ -34,6 +34,42 @@
     catch (e) { return 'comfortable'; }
   }
 
+  // ---- 最接近 Faber-Castell 色（複製件 FaberCastellCssLib + FC_COLORS；純比對） ----
+  var FC = window.FaberCastellCssLib;
+  function fcBand(band) {   // ΔE 級距著色，兩主題皆可讀
+    return band === 'very' ? '#37b26b' : band === 'close' ? '#4a9de0'
+         : band === 'noticeable' ? '#d9a441' : 'var(--muted)';
+  }
+  function fcNear(hex, n) {
+    if (!FC || !FC.nearestFC) return [];
+    var rgb = FC.hexToRgb(hex); if (!rgb) return [];
+    return FC.nearestFC(rgb, { n: n || 1 });
+  }
+  // 明細每列：主色 FC 標籤 + 2 個替代色小片（A+B 合一）
+  function fcBadgeHtml(hex) {
+    var ms = fcNear(hex, 3); if (!ms.length) return '';
+    var p = ms[0];
+    var alts = ms.slice(1).map(function (m) {
+      return '<span class="fc-alt" title="FC' + m.code + ' ' + _.escape(m.name) + ' · ΔE' + m.deltaE.toFixed(1) + '" style="background:' + m.hex + '"></span>';
+    }).join('');
+    return '<span class="fc-near">≈'
+      + '<span class="fc-near-chip" style="background:' + p.hex + '"></span>'
+      + '<span class="fc-near-code">FC' + p.code + '</span>'
+      + '<span class="fc-near-name">' + _.escape(p.name) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(p.band) + '">ΔE' + Math.round(p.deltaE) + '</span>'
+      + (alts ? '<span class="fc-alts">' + alts + '</span>' : '')
+      + '</span>';
+  }
+  // 取色鏡 / picker 單行：≈ FC### name ΔEn
+  function fcLineHtml(hex) {
+    var m = fcNear(hex, 1)[0]; if (!m) return '';
+    return '<span class="fc-near">≈'
+      + '<span class="fc-near-chip" style="background:' + m.hex + '"></span>'
+      + '<span class="fc-near-code">FC' + m.code + '</span>'
+      + '<span class="fc-near-name">' + _.escape(m.name) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
+  }
+
   // ---- toast / loading ---------------------------------------------------
   function toast(key, cls, params) {
     M.toast({ html: I18n.t(key, params || {}), classes: cls || 'grey' });
@@ -319,6 +355,7 @@
         .append($('<span class="detail-hex">').text(c.hex))
         .append($('<span class="detail-bar">').append($('<span>').css('width', Math.max(2, pct) + '%')))
         .append($('<span class="detail-ratio">').text(pct + '%'))
+        .append(fcBadgeHtml(c.hex))
         .appendTo($list);
     });
     M.Modal.getInstance(document.getElementById('detail-modal')).open();
@@ -389,6 +426,9 @@
     var $p = $('#lightbox-pick').prop('hidden', false);
     $p.find('.lightbox-pick-chip').css('background', hex);
     $p.find('.lightbox-pick-hex').text(hex);
+    var $fc = $p.find('.lightbox-pick-fc');
+    if (!$fc.length) $fc = $('<span class="lightbox-pick-fc">').appendTo($p);
+    $fc.html(fcLineHtml(hex));
   }
   function hidePick() { $('#lightbox-pick').prop('hidden', true); setHotSwatch(-1); }
   function setHotSwatch(idx) {
@@ -432,7 +472,7 @@
     ctx.strokeRect(half * cell + 0.5, half * cell + 0.5, cell - 1, cell - 1);
     ctx.strokeStyle = 'rgba(255,255,255,.95)';
     ctx.strokeRect(half * cell - 0.5, half * cell - 0.5, cell + 1, cell + 1);
-    document.getElementById('loupe-hex').textContent = s.hex;
+    document.getElementById('loupe-hex').innerHTML = s.hex + '<span class="loupe-fc">' + fcLineHtml(s.hex) + '</span>';
     var lw = 150, lh = 176, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向
     if (left + lw > window.innerWidth) left = cx - 20 - lw;
     if (top + lh > window.innerHeight) top = cy - 20 - lh;

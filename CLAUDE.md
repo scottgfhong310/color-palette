@@ -43,6 +43,8 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 - **絕對路徑**：前端用 `/api/...`、`/upload/...`，須由本專案 Node server 提供（**不相容 GitHub Pages**）。
 - **主題**：CSS 變數 light/dark，預設 dark；切換時同步 toggle `dark-mode`/`light-mode` class（§5.1 坑）。
 - **i18n**：`i18n.js` 引擎 + `locales/*.js`，`data-i18n` 屬性，預設 `zh-Hant`；**色值/檔名不翻譯**。
+- **最接近 Faber-Castell 色**：明細每列與燈箱取色鏡顯示「≈ FC### 名稱 ΔE」（＋2 替代色）——比對
+  複製件 `FaberCastellCssLib.nearestFC`（CIELAB ΔE76、排除金屬色）。純比對、無 DOM 邊界變動。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 
 ## 複製件登記（共用件改版時回來同步）
@@ -53,5 +55,6 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 | `side-tool.css`（正統 flex 版）| `thangka-trace/side-tool.css`（同家族 §5.5 正統版） |
 | `i18n.js` | 家族共用（`markdown-reader` 等同款引擎） |
 | `color-palette-lib.js` 的 `extractPalette` | 移植自 `thangka-trace-lib.js`（median-cut / frequency 核心） |
+| `faber-castell-color-lib.js` ＋ `data/fc-colors.js` | `faber-castell-color`（最接近 FC 色比對；改版重跑其產生器後同步複製） |
 
 > 為什麼長這樣（registry 決策、色相排序、canvas↔lib 邊界、mergeDuplicates）見 [DESIGN.md](DESIGN.md)。
