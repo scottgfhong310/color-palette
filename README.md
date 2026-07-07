@@ -19,7 +19,7 @@ Part of the **nodeapp WebApp family** — shared conventions and workflow live a
 - **Hue ordering**: swatches within an alias and the whole gallery are sorted by hue (achromatic images sort last).
 - **Browse by color at scale**: the gallery is grouped into hue families (red/orange/yellow/green/cyan/blue/purple/magenta/neutral) with sticky headers and a left-side jump rail; a density toggle switches between thumbnail cards and a compact **swatch wall**.
 - **Persisted registry**: analysis results are stored server-side, so aliases survive reloads and aren't recomputed.
-- **Detail view**: click an alias to see the source image plus each color's hex and area share.
+- **Five detail views**: click an alias to see the source image plus each color's hex/share, switching among five colour types — **Families / Dominant / All / Distribution / Accent** (area-representative colours, ΔE≈5 perceptual distribution, chroma-weighted saliency). What each type means and when to use it: [COLOR-TYPES.md](COLOR-TYPES.md).
 - **Light / dark** themes, **zh-Hant / en / ja** i18n. Materialize components themed by the shared `materialize-dark.css`.
 
 ## Install & run
