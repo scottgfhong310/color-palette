@@ -412,17 +412,19 @@
     var sub = I18n.t('detail.tab.' + detailView) + ' · ' + detailColors.length + ' · ' + Lib.formatSize(f.size);
     var rows = detailColors.map(function (c) {
       var pct = Math.round((c.ratio || 0) * 100) + '%';
-      var sw = '<span style="display:inline-block;width:1.1em;height:1.1em;background:' + c.hex +
-               ';border:1px solid #8886;border-radius:3px;vertical-align:middle"></span>';
+      // 色塊用 inline SVG <rect>（fill＝前景內容，列印/存 PDF 必印；不像 CSS 背景會被瀏覽器省略）
+      var sw = '<svg width="15" height="15" viewBox="0 0 15 15" style="display:inline-block;vertical-align:middle">' +
+               '<rect x="0.5" y="0.5" width="14" height="14" rx="3" fill="' + c.hex + '" stroke="#8886"/></svg>';
       var m = fcNear(c.hex, 1)[0];
       var fc = m ? ('<code>FC' + m.code + '</code> ' + mdEsc(m.name) + ' ΔE' + Math.round(m.deltaE)) : '—';
       return '<tr><td>' + sw + '</td><td><code>' + c.hex.toUpperCase() + '</code></td><td>' + pct + '</td><td>' + fc + '</td></tr>';
     }).join('');
-    // A4 橫向寬 297mm，1/3 ≈ 99mm → 以 max-width:99mm 直接鎖定「A4 橫向 1/3 左右」
+    // 圖框：寬 ≤ A4 橫向 1/3（297/3 ≈ 99mm）、高 ≤ 一頁 A4 橫向可印高度（≈150mm）；
+    //       max-width + max-height + width/height:auto → 瀏覽器等比縮到框內（不變形）
     var html =
       '<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
-        '<div style="flex:0 0 auto;width:33%;max-width:99mm;min-width:150px">' +
-          '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="width:100%;height:auto;border-radius:6px;border:1px solid #8883">' +
+        '<div style="flex:0 0 auto;max-width:99mm">' +
+          '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="display:block;max-width:99mm;max-height:150mm;width:auto;height:auto;border-radius:6px;border:1px solid #8883">' +
           '<div style="font-size:.82em;opacity:.7;margin-top:6px">' + mdEsc(sub) + '</div>' +
         '</div>' +
         '<div style="flex:1 1 0;min-width:260px">' +
@@ -431,7 +433,7 @@
         '</div>' +
       '</div>';
     return [
-      '# ' + stem + ' — ' + I18n.t('md.heading'),
+      '## ' + stem + ' — ' + I18n.t('md.heading'),
       '',
       html,
       '',
