@@ -251,18 +251,25 @@ body.density-compact .pcard-hint { display: none; }
 /* 明細工具列：萃取視圖分頁 + 複製/PNG（固定，不隨色票列捲） */
 .detail-tools {
   flex: 0 0 auto;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px;
   margin: 0 0 12px;
 }
-.detail-tabs { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 2px; }
+/* 分頁區可收縮＋水平捲（隱藏捲軸）：分頁多／英文較長時捲動，動作鈕不被擠出 */
+.detail-tabs {
+  display: flex; flex: 0 1 auto; min-width: 0;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+  background: var(--surface-2); border-radius: 9px; padding: 2px;
+}
+.detail-tabs::-webkit-scrollbar { display: none; }
 .detail-tab {
+  flex: 0 0 auto; white-space: nowrap;
   border: none; background: transparent; cursor: pointer;
-  color: var(--muted); font-size: .78rem; padding: 4px 12px; border-radius: 7px;
+  color: var(--muted); font-size: .78rem; padding: 4px 11px; border-radius: 7px;
   font-family: inherit;
 }
 .detail-tab:hover { color: var(--text); }
 .detail-tab.active { background: var(--accent); color: #fff; }
-.detail-acts { display: inline-flex; gap: 4px; }
+.detail-acts { flex: 0 0 auto; margin-left: auto; display: inline-flex; gap: 4px; }
 .detail-act {
   border: none; background: transparent; cursor: pointer; color: var(--muted);
   width: 32px; height: 32px; border-radius: 8px; display: inline-flex;
