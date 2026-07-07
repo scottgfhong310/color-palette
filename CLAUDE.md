@@ -44,7 +44,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 - **主題**：CSS 變數 light/dark，預設 dark；切換時同步 toggle `dark-mode`/`light-mode` class（§5.1 坑）。
 - **i18n**：`i18n.js` 引擎 + `locales/*.js`，`data-i18n` 屬性，預設 `zh-Hant`；**色值/檔名不翻譯**。
 - **最接近 Faber-Castell 色**：明細每列與燈箱取色鏡顯示「≈ FC### 名稱 ΔE」（＋2 替代色）——比對
-  複製件 `FaberCastellCssLib.nearestFC`（CIELAB ΔE76、排除金屬色）。純比對、無 DOM 邊界變動。
+  複製件 `FaberCastellCssLib.nearestFC`（CIEDE2000 ΔE00、排除金屬色）。純比對、無 DOM 邊界變動。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 
 ## 複製件登記（共用件改版時回來同步）
