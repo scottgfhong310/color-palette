@@ -276,9 +276,9 @@ body.density-compact .pcard-hint { display: none; }
   display: none; background: var(--overlay); backdrop-filter: blur(3px);
 }
 .lightbox.show { display: block; }
-/* 舞台：左半（留 148px 給右側色票欄）；frame 承載 transform，img 與 mask 同框對位 */
+/* 舞台：左半（留 180px 給右側色票欄）；frame 承載 transform，img 與 mask 同框對位 */
 .lightbox-stage {
-  position: absolute; left: 0; top: 0; bottom: 0; right: 148px; overflow: hidden;
+  position: absolute; left: 0; top: 0; bottom: 0; right: 180px; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
   cursor: crosshair; touch-action: none;                 /* 取色：十字游標 */
 }
@@ -301,7 +301,7 @@ body.density-compact .pcard-hint { display: none; }
 
 /* 右側色票欄：頂部取色器（固定）＋ 下方色票列（可捲） */
 .lightbox-palette {
-  position: absolute; right: 0; top: 0; bottom: 0; width: 148px; z-index: 3;
+  position: absolute; right: 0; top: 0; bottom: 0; width: 180px; z-index: 3;
   display: flex; flex-direction: column;
   background: rgba(0,0,0,.30); border-left: 1px solid rgba(255,255,255,.08);
 }
@@ -309,7 +309,7 @@ body.density-compact .pcard-hint { display: none; }
 .lb-pal-head {
   flex: 0 0 auto;
   display: flex; align-items: center; gap: 8px; min-height: 40px;
-  padding: 10px 12px; color: #fff;
+  padding: 9px 12px; color: #fff;
   border-bottom: 1px solid rgba(255,255,255,.10);
 }
 .lb-pal-idle { font-size: .74rem; opacity: .6; }
@@ -321,24 +321,32 @@ body.density-compact .pcard-hint { display: none; }
 }
 .lb-swatch {
   display: flex; align-items: center; gap: 8px;
-  padding: 4px 6px; border-radius: 8px; cursor: pointer;
+  padding: 5px 7px; border-radius: 8px; cursor: pointer;
   border: 1px solid transparent;
 }
 .lb-swatch:hover { background: rgba(255,255,255,.06); }
 .lb-swatch .chip {
-  width: 22px; height: 22px; border-radius: 6px; flex: 0 0 auto;
+  width: 28px; height: 28px; border-radius: 6px; flex: 0 0 auto;
   border: 1px solid rgba(255,255,255,.28);
 }
-.lb-swatch .hex {
+/* 每列兩行：上＝hex + 佔比%；下＝≈最接近 FC 色鉛 */
+.lb-sw-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.lb-sw-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.lb-sw-hex {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: .72rem; color: #fff; text-transform: uppercase;
 }
+.lb-sw-pct { font-size: .68rem; color: rgba(255,255,255,.6); flex: 0 0 auto; }
+.lb-sw-fc { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: .64rem; color: rgba(255,255,255,.55); }
+.lb-sw-fcchip { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.22); }
+.lb-sw-fccode { flex: 0 0 auto; letter-spacing: .02em; }
+.lb-sw-fcname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-swatch.hot { background: rgba(255,255,255,.13); }                 /* 滴管當前最近色 */
 .lb-swatch.active { border-color: var(--accent); background: rgba(144,202,249,.20); }  /* 已選定位色 */
 
 /* 底部資訊列：檔名 · 縮放% · 滴管讀值 · 提示 · 關閉 */
 .lightbox-bar {
-  position: absolute; left: 0; right: 148px; bottom: 0; z-index: 2;
+  position: absolute; left: 0; right: 180px; bottom: 0; z-index: 2;
   display: flex; align-items: center; gap: 14px;
   padding: 12px 18px;
   background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
@@ -349,7 +357,7 @@ body.density-compact .pcard-hint { display: none; }
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: .85rem; opacity: .85; flex: 0 0 auto;
 }
-.lightbox-pick { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.lightbox-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
 .lightbox-pick[hidden] { display: none; }
 .lightbox-pick-chip { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(255,255,255,.4); }
 .lightbox-pick-hex {
@@ -399,6 +407,11 @@ body.density-compact .pcard-hint { display: none; }
 /* 燈箱取色列與放大鏡的 FC 行 */
 .lightbox-pick-fc, .loupe-fc { display: inline-flex; }
 .loupe-fc .fc-near { color: rgba(255,255,255,.8); }
+/* header 取色讀值：≈FC 排到第二行、不撐破欄寬（修頂端截斷） */
+.lightbox-pick-fc { flex-basis: 100%; min-width: 0; overflow: hidden; }
+.lightbox-pick-fc .fc-near { max-width: 100%; color: rgba(255,255,255,.75); }
+.lightbox-pick-fc .fc-near-code { color: #fff; }
+.lightbox-pick-fc .fc-near-name { max-width: 66px; color: rgba(255,255,255,.6); }
 .loupe-fc .fc-near-code, .loupe-fc .fc-near-name { color: #fff; }
 .loupe-fc .fc-near-name { max-width: 96px; }
 

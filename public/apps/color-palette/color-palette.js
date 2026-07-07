@@ -414,9 +414,23 @@
   function buildLbPalette() {
     var $p = $('#lightbox-swatches').empty();
     lbColors.forEach(function (c, i) {
-      $('<div class="lb-swatch">').attr('data-idx', i)
+      var pct = Math.round((c.ratio || 0) * 100);
+      var $info = $('<div class="lb-sw-info">')
+        .append($('<div class="lb-sw-top">')
+          .append($('<span class="lb-sw-hex">').text(c.hex))
+          .append($('<span class="lb-sw-pct">').text(pct + '%')));
+      var m = fcNear(c.hex, 1)[0];   // 最接近的實體 FC 色鉛
+      if (m) {
+        $('<div class="lb-sw-fc">')
+          .attr('title', 'FC' + m.code + ' ' + m.name + ' · ΔE' + m.deltaE.toFixed(1))
+          .append($('<span class="lb-sw-fcchip">').css('background', m.hex))
+          .append($('<span class="lb-sw-fccode">').text('FC' + m.code))
+          .append($('<span class="lb-sw-fcname">').text(m.name))
+          .appendTo($info);
+      }
+      $('<div class="lb-swatch">').attr('data-idx', i).attr('title', c.hex)
         .append($('<span class="chip">').css('background', c.hex))
-        .append($('<span class="hex">').text(c.hex))
+        .append($info)
         .appendTo($p);
     });
   }
