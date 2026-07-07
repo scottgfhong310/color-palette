@@ -45,6 +45,8 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 - **i18n**：`i18n.js` 引擎 + `locales/*.js`，`data-i18n` 屬性，預設 `zh-Hant`；**色值/檔名不翻譯**。
 - **最接近 Faber-Castell 色**：明細每列與燈箱取色鏡顯示「≈ FC### 名稱 ΔE」（＋2 替代色）——比對
   複製件 `FaberCastellCssLib.nearestFC`（CIEDE2000 ΔE00、排除金屬色）。純比對、無 DOM 邊界變動。
+- **明細萃取視圖分頁**（對齊 `thangka-trace` 的用色清單面板）：色族（median）／主色（frequency）／全收（不濾近白黑，含紙底/線稿），
+  開啟時即時 `Lib.extractPalette` 重萃取（離屏 240px）；工具列另有**複製全部色碼**與 **PNG 色卡匯出**（純前端 canvas）。落地 alias 仍是 hue-sorted 指紋，分頁為即時檢視、不改 registry。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 
 ## 複製件登記（共用件改版時回來同步）

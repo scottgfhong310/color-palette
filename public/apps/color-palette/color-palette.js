@@ -336,29 +336,100 @@
   }
 
   // ---- 明細 Modal --------------------------------------------------------
+  // 明細：三種萃取視圖（色族 median / 主色 frequency / 全收＝不濾近白黑）
+  var detailData = null, detailView = 'family', detailColors = [];
+  function detailOptsFor(view) {
+    if (view === 'family') return { method: 'median', count: 12 };
+    if (view === 'all') return { method: 'frequency', count: 12, skipNearWhite: false, skipNearBlack: false };
+    return { method: 'frequency', count: 12 };   // dominant 主色
+  }
+  // 載入該圖像素到離屏（限 240px）供分頁即時重萃取
+  function loadDetailPixels(f, cb) {
+    detailData = null;
+    var img = new Image();
+    img.onload = function () {
+      var nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!nw) { cb(); return; }
+      var s = Math.min(1, 240 / Math.max(nw, nh));
+      var w = Math.max(1, Math.round(nw * s)), h = Math.max(1, Math.round(nh * s));
+      var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      var ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, w, h);
+      try { detailData = ctx.getImageData(0, 0, w, h).data; } catch (e) { detailData = null; }
+      cb();
+    };
+    img.onerror = function () { cb(); };
+    img.src = versionedUrl(f);
+  }
+  function detailRowLi(c) {
+    var pct = Math.round((c.ratio || 0) * 100);
+    return $('<li>')
+      .append($('<span class="detail-chip">').css('background', c.hex))
+      .append($('<span class="detail-hex">').text(c.hex))
+      .append($('<span class="detail-bar">').append($('<span>').css('width', Math.max(2, pct) + '%')))
+      .append($('<span class="detail-ratio">').text(pct + '%'))
+      .append(fcBadgeHtml(c.hex));
+  }
+  function renderDetailPalette() {
+    $('#detail-tabs .detail-tab').each(function () {
+      $(this).toggleClass('active', $(this).attr('data-view') === detailView);
+    });
+    var f = findFile(detailName);
+    var colors = detailData ? Lib.extractPalette(detailData, detailOptsFor(detailView))
+                            : ((f && f.alias && f.alias.colors) || []);   // 後備：落地色票
+    detailColors = colors;
+    var $list = $('#detail-list').empty();
+    colors.forEach(function (c) { detailRowLi(c).appendTo($list); });
+    $('#detail-sub').text(I18n.t('detail.sub', {
+      method: I18n.t('detail.tab.' + detailView), n: colors.length, size: f ? Lib.formatSize(f.size) : ''
+    }));
+  }
   function openDetail(f) {
     detailName = f.name;
     $('#detail-image').attr('src', versionedUrl(f));
     $('#detail-name').text(f.name);
-    $('#detail-sub').text(
-      I18n.t('detail.sub', {
-        method: I18n.t('method.' + f.alias.method),
-        n: f.alias.colors.length,
-        size: Lib.formatSize(f.size)
-      })
-    );
-    var $list = $('#detail-list').empty();
-    f.alias.colors.forEach(function (c) {
-      var pct = Math.round((c.ratio || 0) * 100);
-      $('<li>')
-        .append($('<span class="detail-chip">').css('background', c.hex))
-        .append($('<span class="detail-hex">').text(c.hex))
-        .append($('<span class="detail-bar">').append($('<span>').css('width', Math.max(2, pct) + '%')))
-        .append($('<span class="detail-ratio">').text(pct + '%'))
-        .append(fcBadgeHtml(c.hex))
-        .appendTo($list);
-    });
+    detailView = (f.alias && f.alias.method === 'frequency') ? 'dominant' : 'family';
+    detailData = null;
+    renderDetailPalette();                    // 先用落地色票即時顯示
+    loadDetailPixels(f, function () { if (detailName === f.name) renderDetailPalette(); });  // 像素載入後改即時萃取
     M.Modal.getInstance(document.getElementById('detail-modal')).open();
+  }
+  // 複製目前視圖全部色碼（每行一個 hex）
+  function copyAllDetail() {
+    if (!detailColors.length) return;
+    var text = detailColors.map(function (c) { return c.hex.toUpperCase(); }).join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(function () { toast('toast.copiedAll', 'teal', { n: detailColors.length }); })
+        .catch(function () { toast('toast.copyFail', 'red'); });
+    } else { toast('toast.copyFail', 'red'); }
+  }
+  // 匯出目前視圖為 PNG 色卡（比照 thangka-trace）
+  function exportDetailPng() {
+    var sw = detailColors; if (!sw.length) return;
+    var pad = 16, rowH = 34, chip = 24, headH = 30, W = 320, H = headH + pad + sw.length * rowH + pad, scale = 2;
+    var cv = document.createElement('canvas'); cv.width = W * scale; cv.height = H * scale;
+    var ctx = cv.getContext('2d'); ctx.scale(scale, scale);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1f2328'; ctx.font = '600 14px -apple-system, "Noto Sans TC", sans-serif'; ctx.textBaseline = 'middle';
+    ctx.fillText(detailName, pad, headH / 2 + 6);
+    sw.forEach(function (c, i) {
+      var y = headH + pad + i * rowH;
+      ctx.fillStyle = c.hex; ctx.fillRect(pad, y, chip, chip);
+      ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.strokeRect(pad + 0.5, y + 0.5, chip, chip);
+      ctx.fillStyle = '#1f2328'; ctx.font = '13px ui-monospace, Menlo, Consolas, monospace';
+      ctx.fillText(c.hex.toUpperCase(), pad + chip + 12, y + chip / 2);
+      if (isFinite(c.ratio)) {
+        ctx.fillStyle = '#57606a'; ctx.font = '12px -apple-system, sans-serif';
+        var pct = Math.round(c.ratio * 100) + '%';
+        ctx.fillText(pct, W - pad - ctx.measureText(pct).width, y + chip / 2);
+      }
+    });
+    var a = document.createElement('a');
+    a.href = cv.toDataURL('image/png');
+    a.download = detailName.replace(/\.[^.]+$/, '') + '-palette-' + detailView + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('toast.pngExported', 'green');
   }
 
   // ---- 燈箱：細看原圖 ＋ 色票互動（縮放/色距的純數學在 lib，這裡碰 DOM/canvas） --
@@ -641,6 +712,14 @@
         .catch(function (err) { hideLoading(); toast('toast.deleteFail', 'red', { m: err.message }); });
     });
 
+    // 明細萃取視圖分頁（色族 / 主色 / 全收）→ 即時重萃取
+    $('#detail-tabs').on('click', '.detail-tab', function () {
+      detailView = $(this).attr('data-view');
+      renderDetailPalette();
+    });
+    $('#detail-copyall').on('click', copyAllDetail);
+    $('#detail-png').on('click', exportDetailPng);
+
     // 萃取法切換（median ↔ frequency）
     $('#setting-method').on('click', function () {
       var idx = Lib.METHODS.indexOf(method);
@@ -723,8 +802,7 @@
       updateMethodTool();
       updateDensityTool();
       render();
-      var nf = detailName && findFile(detailName);
-      if (nf && nf.alias && $('#detail-modal').hasClass('open')) openDetail(nf);
+      if (detailName && $('#detail-modal').hasClass('open')) renderDetailPalette();  // 重繪明細（換語言，保留分頁）
     });
   }
 

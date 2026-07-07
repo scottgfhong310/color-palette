@@ -246,6 +246,29 @@ body.density-compact .pcard-hint { display: none; }
 /* footer 的「刪除這一張圖」：靠左、hover 轉紅（警示） */
 .detail-delete-btn { float: left; }
 .detail-delete-btn:hover { color: #ff6e6e; }
+
+/* 明細工具列：萃取視圖分頁 + 複製/PNG（固定，不隨色票列捲） */
+.detail-tools {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 0 0 12px;
+}
+.detail-tabs { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 2px; }
+.detail-tab {
+  border: none; background: transparent; cursor: pointer;
+  color: var(--muted); font-size: .78rem; padding: 4px 12px; border-radius: 7px;
+  font-family: inherit;
+}
+.detail-tab:hover { color: var(--text); }
+.detail-tab.active { background: var(--accent); color: #fff; }
+.detail-acts { display: inline-flex; gap: 4px; }
+.detail-act {
+  border: none; background: transparent; cursor: pointer; color: var(--muted);
+  width: 32px; height: 32px; border-radius: 8px; display: inline-flex;
+  align-items: center; justify-content: center;
+}
+.detail-act:hover { background: var(--surface-2); color: var(--accent); }
+.detail-act i.material-icons { font-size: 19px; }
 .detail-list li {
   display: flex; align-items: center; gap: 12px;
   padding: 7px 0; border-bottom: 1px solid var(--border);

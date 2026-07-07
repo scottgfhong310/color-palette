@@ -105,6 +105,18 @@
           <div id="detail-sub" class="detail-sub"></div>
         </div>
       </div>
+      <!-- 工具列：萃取視圖分頁（色族/主色/全收）＋ 複製全部 / PNG 色卡 -->
+      <div class="detail-tools">
+        <div class="detail-tabs" id="detail-tabs">
+          <button type="button" class="detail-tab" data-view="family" data-i18n="detail.tab.family">色族</button>
+          <button type="button" class="detail-tab" data-view="dominant" data-i18n="detail.tab.dominant">主色</button>
+          <button type="button" class="detail-tab" data-view="all" data-i18n="detail.tab.all">全收</button>
+        </div>
+        <div class="detail-acts">
+          <button type="button" id="detail-copyall" class="detail-act" data-i18n-title="detail.copyAll" title="複製全部色碼"><i class="material-icons">content_copy</i></button>
+          <button type="button" id="detail-png" class="detail-act" data-i18n-title="detail.png" title="下載 PNG 色卡"><i class="material-icons">download</i></button>
+        </div>
+      </div>
       <ul id="detail-list" class="detail-list"></ul>
     </div>
     <div class="modal-footer">
