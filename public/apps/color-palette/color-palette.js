@@ -414,38 +414,97 @@
   // 產生目前視圖的色票 .md：左右兩欄——圖在左（寬約 A4 橫向 1/3），色票表在右
   //   整塊用 HTML（zero-md 把 raw HTML 區塊原樣渲染）；務必**單一連續區塊、無內部空行**（否則 marked 會提前結束 HTML 區塊）
   function mdEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  // 色塊：inline SVG <rect>（fill＝前景內容，列印/存 PDF 必印；不像 CSS 背景會被瀏覽器省略）
+  function mdSwatchSvg(hex) {
+    return '<svg width="15" height="15" viewBox="0 0 15 15" style="display:inline-block;vertical-align:middle">' +
+           '<rect x="0.5" y="0.5" width="14" height="14" rx="3" fill="' + hex + '" stroke="#8886"/></svg>';
+  }
+  function mdFcCell(hex) {
+    var m = fcNear(hex, 1)[0];
+    return m ? ('<code>FC' + m.code + '</code> ' + mdEsc(m.name) + ' ΔE' + Math.round(m.deltaE)) : '—';
+  }
+  // 一段色票表（含表頭）；每列 break-inside:avoid＝跨頁時列不被切一半，thead 預設每頁重印
+  function mdTableHtml(colors) {
+    var rows = colors.map(function (c) {
+      var pct = Math.round((c.ratio || 0) * 100) + '%';
+      return '<tr style="break-inside:avoid;page-break-inside:avoid"><td>' + mdSwatchSvg(c.hex) +
+             '</td><td><code>' + c.hex.toUpperCase() + '</code></td><td>' + pct + '</td><td>' + mdFcCell(c.hex) + '</td></tr>';
+    }).join('');
+    return '<table><thead><tr><th></th><th>Hex</th><th>' + mdEsc(I18n.t('md.ratio')) +
+           '</th><th>&#8776; Faber-Castell</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  // 總覽比例色帶：單一 SVG，寬 100%，各色寬度依 ratio（正規化到顯示總和填滿）；SVG＝前景，必印
+  function mdBandSvg(colors) {
+    var total = colors.reduce(function (s, c) { return s + (c.ratio || 0); }, 0) || 1;
+    var x = 0;
+    var segs = colors.map(function (c) {
+      var w = (c.ratio || 0) / total * 100;
+      var r = '<rect x="' + x.toFixed(3) + '" y="0" width="' + w.toFixed(3) + '" height="10" fill="' + c.hex + '"/>';
+      x += w; return r;
+    }).join('');
+    return '<svg viewBox="0 0 100 10" preserveAspectRatio="none" width="100%" height="12" ' +
+           'style="display:block;border-radius:3px;overflow:hidden;border:1px solid #8883">' + segs + '</svg>';
+  }
+  // 圖框 style：寬 ≤ A4 橫向 1/3（297/3 ≈ 99mm）、高 ≤ 一頁可印（≈150mm）、等比縮到框內
+  var MD_IMG_STYLE = 'display:block;max-width:99mm;max-height:150mm;width:auto;height:auto;border-radius:6px;border:1px solid #8883';
   function buildPaletteMd(f) {
     var stem = detailName.replace(/\.[^.]+$/, '');
     var sub = I18n.t('detail.tab.' + detailView) + ' · ' + detailColors.length + ' · ' + Lib.formatSize(f.size);
-    var rows = detailColors.map(function (c) {
-      var pct = Math.round((c.ratio || 0) * 100) + '%';
-      // 色塊用 inline SVG <rect>（fill＝前景內容，列印/存 PDF 必印；不像 CSS 背景會被瀏覽器省略）
-      var sw = '<svg width="15" height="15" viewBox="0 0 15 15" style="display:inline-block;vertical-align:middle">' +
-               '<rect x="0.5" y="0.5" width="14" height="14" rx="3" fill="' + c.hex + '" stroke="#8886"/></svg>';
-      var m = fcNear(c.hex, 1)[0];
-      var fc = m ? ('<code>FC' + m.code + '</code> ' + mdEsc(m.name) + ' ΔE' + Math.round(m.deltaE)) : '—';
-      return '<tr><td>' + sw + '</td><td><code>' + c.hex.toUpperCase() + '</code></td><td>' + pct + '</td><td>' + fc + '</td></tr>';
-    }).join('');
-    // 圖框：寬 ≤ A4 橫向 1/3（297/3 ≈ 99mm）、高 ≤ 一頁 A4 橫向可印高度（≈150mm）；
-    //       max-width + max-height + width/height:auto → 瀏覽器等比縮到框內（不變形）
     var html =
       '<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
         '<div style="flex:0 0 auto;max-width:99mm">' +
-          '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="display:block;max-width:99mm;max-height:150mm;width:auto;height:auto;border-radius:6px;border:1px solid #8883">' +
+          '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="' + MD_IMG_STYLE + '">' +
           '<div style="font-size:.82em;opacity:.7;margin-top:6px">' + mdEsc(sub) + '</div>' +
         '</div>' +
-        '<div style="flex:1 1 0;min-width:260px">' +
-          '<table><thead><tr><th></th><th>Hex</th><th>' + mdEsc(I18n.t('md.ratio')) + '</th><th>&#8776; Faber-Castell</th></tr></thead>' +
-          '<tbody>' + rows + '</tbody></table>' +
-        '</div>' +
+        '<div style="flex:1 1 0;min-width:260px">' + mdTableHtml(detailColors) + '</div>' +
       '</div>';
-    return [
-      '## ' + stem + ' — ' + I18n.t('md.heading'),
-      '',
-      html,
-      '',
-      '<sub>' + I18n.t('md.footer') + '</sub>'
-    ].join('\n');
+    return ['## ' + stem + ' — ' + I18n.t('md.heading'), '', html, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
+  }
+
+  // 完整色彩報告：五構面（全放）從同一份 detailData 各算一次，每段 cap 16 列。
+  //   版面＝總覽頭（圖左 + 五條比例色帶）＋ 五構面段；分頁點設在段邊界（每段 break-inside:avoid 整段不裂）。
+  //   ratio 三種尺不可混：面積/真實面積/顯著度——各段標題註明（見 COLOR-TYPES.md）。
+  var REPORT_CAP = 16;
+  var REPORT_FACETS = [
+    { view: 'family', note: 'md.note.area' },
+    { view: 'dominant', note: 'md.note.area' },
+    { view: 'all', note: 'md.note.area' },
+    { view: 'distribution', note: 'md.note.trueArea' },
+    { view: 'accent', note: 'md.note.saliency' }
+  ];
+  function reportFacetColors(view) {
+    if (view === 'distribution') return Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: REPORT_CAP });
+    if (view === 'accent') return Lib.accentColors(detailData, { radius: 5, maxColors: REPORT_CAP });
+    return Lib.extractPalette(detailData, detailOptsFor(view)).slice(0, REPORT_CAP);
+  }
+  function buildReportMd(f) {
+    var stem = detailName.replace(/\.[^.]+$/, '');
+    var facets = REPORT_FACETS.map(function (ff) {
+      return { name: I18n.t('detail.tab.' + ff.view), note: I18n.t(ff.note), colors: reportFacetColors(ff.view) };
+    });
+    // 總覽頭（整塊 block、break-inside:avoid＝圖＋五色帶不裂）：右側每構面一條比例色帶
+    var strips = facets.map(function (fc) {
+      return '<div style="margin:0 0 9px"><div style="font-size:.8em;opacity:.72;margin-bottom:2px">' +
+             mdEsc(fc.name) + ' <span style="opacity:.6">· ' + mdEsc(fc.note) + '</span></div>' + mdBandSvg(fc.colors) + '</div>';
+    }).join('');
+    var head =
+      '<div style="break-inside:avoid;page-break-inside:avoid;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
+        '<div style="flex:0 0 auto;max-width:99mm">' +
+          '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="' + MD_IMG_STYLE + '">' +
+          '<div style="font-size:.82em;opacity:.7;margin-top:6px">' + mdEsc(Lib.formatSize(f.size)) + '</div>' +
+        '</div>' +
+        '<div style="flex:1 1 0;min-width:260px">' + strips + '</div>' +
+      '</div>';
+    // 五構面段：每段 block、break-inside:avoid（分頁點）；段內 h3 標題（用 HTML，避開 marked 對 ### 的空行規則）
+    //   各段是獨立 HTML block、以換行相接（段內無空行，符合 marked HTML 區塊規則）
+    var sections = facets.map(function (fc) {
+      return '<div style="break-inside:avoid;page-break-inside:avoid;margin-top:14px">' +
+               '<h3 style="margin:0 0 6px">' + mdEsc(fc.name) +
+               ' <span style="font-size:.68em;font-weight:400;opacity:.6">· ' + mdEsc(fc.note) + '</span></h3>' +
+               mdTableHtml(fc.colors) +
+             '</div>';
+    }).join('\n');
+    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', head, '', sections, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
   }
   // 存成 .md 到 palettes/，並在 markdown-library 以 ?mymd 絕對路徑開啟
   function saveDetailMd() {
@@ -453,6 +512,19 @@
     var fname = detailName.replace(/\.[^.]+$/, '') + '-palette-' + detailView + '.md';
     showLoading();
     Lib.saveMd(fname, buildPaletteMd(f))
+      .then(function (d) {
+        hideLoading();
+        toast('toast.mdSaved', 'green', { n: fname });
+        window.open('/apps/markdown-library/?mymd=' + encodeURIComponent(d.path), '_blank', 'noopener');
+      })
+      .catch(function (err) { hideLoading(); toast('toast.mdFail', 'red', { m: err.message }); });
+  }
+  // 存「完整色彩報告」.md（五構面），並在 markdown-library 開啟。需已載入像素（五構面全要即時重算）。
+  function saveReportMd() {
+    var f = findFile(detailName); if (!f || !detailData) return;
+    var fname = detailName.replace(/\.[^.]+$/, '') + '-palette-report.md';
+    showLoading();
+    Lib.saveMd(fname, buildReportMd(f))
       .then(function (d) {
         hideLoading();
         toast('toast.mdSaved', 'green', { n: fname });
@@ -748,6 +820,7 @@
     });
     $('#detail-copyall').on('click', copyAllDetail);
     $('#detail-md').on('click', saveDetailMd);
+    $('#detail-report').on('click', saveReportMd);
 
     // 萃取法切換（median ↔ frequency）
     $('#setting-method').on('click', function () {
