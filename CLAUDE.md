@@ -47,7 +47,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
   複製件 `FaberCastellCssLib.nearestFC`（CIEDE2000 ΔE00、排除金屬色）。純比對、無 DOM 邊界變動。
 - **明細萃取視圖分頁**（對齊 `thangka-trace` 的用色清單面板）：色族（median）／主色（frequency）／全收（不濾近白黑，含紙底/線稿）／**分布**／**重點色**，
   開啟時即時重萃取（離屏 240px）——前三者走 `Lib.extractPalette`；**分布走 `Lib.distributionByDeltaE`**（ΔE≈5 感知分箱）、**重點色走 `Lib.accentColors`**（彩度加權顯著性）。
-  工具列另有**複製全部色碼**、**存 `.md`**（單構面：左圖右表）與**完整報告 `summarize`**（`buildReportMd`：五構面全放，分頁版——P1 總覽頭〔圖＋五條比例色帶，帶高 30〕、P2 色族｜主色〔兩欄各 12〕、P3 全收〔單欄 12〕、P4 分布〔兩欄各 12＝24〕、P5 重點色〔兩欄各 12〕；分頁點 P2–P5 各 `break-before:page`）——皆 SVG 色塊必印、交 `markdown-library` 以 `?mymd` 絕對路徑開啟。落地 alias 仍是 hue-sorted 指紋，分頁為即時檢視、不改 registry。
+  工具列另有**複製全部色碼**、**存 `.md`**（單構面：左圖右表）與**完整報告 `summarize`**（`buildReportMd`：五構面全放，分頁版——P1 總覽頭〔圖＋五條比例色帶，帶高 30〕、P2 色族｜主色〔兩欄各 12〕、P3 全收〔單欄 12〕、分布／重點色 `maxColors: 36`、每頁三欄各 12〔P4 分布、P5 重點色〕；**特例：分布與重點色都 ≤12 色時合成一頁**〔分布｜重點色兩欄〕；分頁點各 `break-before:page`）——皆 SVG 色塊必印、交 `markdown-library` 以 `?mymd` 絕對路徑開啟。落地 alias 仍是 hue-sorted 指紋，分頁為即時檢視、不改 registry。
 - **ΔE≈5 感知用色分布** `distributionByDeltaE`（純函式）：5-bit 粗量化去噪 → 每桶平均色轉 **CIELAB** → 依權重 leader 聚類（**CIEDE2000 ΔE00** < radius 併簇）→ 回加權平均色色票（依佔比排序）。
   預設「全收」（含中性色）故佔比加總得起來＝真實用色比例；自帶 `srgbToLab`/`ciede2000`、不相依 `faber-castell-color-lib`（保持純核心零外部相依）。顆粒度取捨見 [DESIGN.md](DESIGN.md)。
 - **重點色 accent** `accentColors`（純函式，DESIGN §10）：**彩度加權**的顯著性萃取——每像素權重 `(Lab 彩度−chromaFloor)^gamma`（預設 `gamma=2`、`chromaFloor=14`），近中性像素權重 0。小面積但鮮豔的色（紅唇、紅點）會浮上來，`ratio`＝顯著度佔比（非面積）。與面積視圖互補：面積視圖答「用了什麼、各多少」，重點色答「哪些最搶眼」。

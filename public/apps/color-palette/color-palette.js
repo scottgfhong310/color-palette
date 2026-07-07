@@ -474,8 +474,8 @@
     var fam = Lib.extractPalette(detailData, detailOptsFor('family')).slice(0, 12);
     var dom = Lib.extractPalette(detailData, detailOptsFor('dominant')).slice(0, 12);
     var all = Lib.extractPalette(detailData, detailOptsFor('all')).slice(0, 12);
-    var dist = Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: 24 });
-    var acc = Lib.accentColors(detailData, { radius: 5, maxColors: 24 });
+    var dist = Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: 36 });
+    var acc = Lib.accentColors(detailData, { radius: 5, maxColors: 36 });
     var T = { fam: I18n.t('detail.tab.family'), dom: I18n.t('detail.tab.dominant'), all: I18n.t('detail.tab.all'),
               dist: I18n.t('detail.tab.distribution'), acc: I18n.t('detail.tab.accent') };
     var N = { area: I18n.t('md.note.area'), trueArea: I18n.t('md.note.trueArea'), sal: I18n.t('md.note.saliency') };
@@ -486,6 +486,12 @@
     }
     function col(inner) { return '<div style="flex:1 1 0;min-width:0">' + inner + '</div>'; }
     function twoCol(left, right) { return '<div style="display:flex;gap:24px;align-items:flex-start">' + left + right + '</div>'; }
+    // 多欄：每欄 12 色，最多 maxCols 欄；只為非空切片建欄（避免空表頭）
+    function multiCol(colors, maxCols) {
+      var cols = [];
+      for (var i = 0; i < colors.length && cols.length < maxCols; i += 12) cols.push(col(mdTableHtml(colors.slice(i, i + 12))));
+      return '<div style="display:flex;gap:18px;align-items:flex-start">' + cols.join('') + '</div>';
+    }
     // 頁：強制換頁（block 上掛 break-before，非 flex 子項）
     function page(inner) { return '<div style="break-before:page;page-break-before:always;margin-top:6px">' + inner + '</div>'; }
 
@@ -510,12 +516,14 @@
     var p2 = page(twoCol(col(h3(T.fam, N.area) + mdTableHtml(fam)), col(h3(T.dom, N.area) + mdTableHtml(dom))));
     // P3 全收（單欄 12）
     var p3 = page('<div>' + h3(T.all, N.area) + mdTableHtml(all) + '</div>');
-    // P4 分布（一個 h3 + 兩欄各 12）
-    var p4 = page(h3(T.dist, N.trueArea) + twoCol(col(mdTableHtml(dist.slice(0, 12))), col(mdTableHtml(dist.slice(12, 24)))));
-    // P5 重點色（一個 h3 + 兩欄各 12）
-    var p5 = page(h3(T.acc, N.sal) + twoCol(col(mdTableHtml(acc.slice(0, 12))), col(mdTableHtml(acc.slice(12, 24)))));
+    // P4/P5 分布、重點色（各 ≤36 色）：
+    //   特例——兩者都 ≤12 時，合成「一頁」（分布｜重點色，兩欄各一構面）；
+    //   否則各自一頁、以三欄呈現（每欄 12，最多 3 欄＝36）。
+    var distAcc = (dist.length <= 12 && acc.length <= 12)
+      ? page(twoCol(col(h3(T.dist, N.trueArea) + mdTableHtml(dist)), col(h3(T.acc, N.sal) + mdTableHtml(acc))))
+      : page(h3(T.dist, N.trueArea) + multiCol(dist, 3)) + page(h3(T.acc, N.sal) + multiCol(acc, 3));
 
-    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', overview, p2, p3, p4, p5, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
+    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', overview, p2, p3, distAcc, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
   }
   // 存成 .md 到 palettes/，並在 markdown-library 以 ?mymd 絕對路徑開啟
   function saveDetailMd() {
