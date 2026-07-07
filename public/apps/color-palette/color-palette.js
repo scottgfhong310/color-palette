@@ -375,8 +375,15 @@
       $(this).toggleClass('active', $(this).attr('data-view') === detailView);
     });
     var f = findFile(detailName);
-    var colors = detailData ? Lib.extractPalette(detailData, detailOptsFor(detailView))
-                            : ((f && f.alias && f.alias.colors) || []);   // 後備：落地色票
+    var colors;
+    if (detailData) {
+      // 分布視圖走感知分箱（ΔE≈5）；其餘視圖走 median/frequency 萃取
+      colors = (detailView === 'distribution')
+        ? Lib.distributionByDeltaE(detailData, { radius: 5 })
+        : Lib.extractPalette(detailData, detailOptsFor(detailView));
+    } else {
+      colors = (f && f.alias && f.alias.colors) || [];       // 後備：落地色票
+    }
     detailColors = colors;
     var $list = $('#detail-list').empty();
     colors.forEach(function (c) { detailRowLi(c).appendTo($list); });

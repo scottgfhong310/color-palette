@@ -38,6 +38,7 @@ I18n.register('en', {
   'detail.tab.family': 'Families',
   'detail.tab.dominant': 'Dominant',
   'detail.tab.all': 'All',
+  'detail.tab.distribution': 'Distribution',
   'detail.copyAll': 'Copy all colours',
   'detail.saveMd': 'Save as .md and open in markdown-library',
   'md.heading': 'Palette',

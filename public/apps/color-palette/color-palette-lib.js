@@ -284,6 +284,128 @@
     };
   }
 
+  // ---- 感知色距（CIEDE2000）＋ ΔE 感知分布 -------------------------------
+  // 用途：以「人眼感知距離」把整張圖的用色分箱成分布（比 RGB 等分誠實）。
+  // 尺與 faber-castell-color 的 nearestFC 同源（CIELAB D65 + CIEDE2000 ΔE00），
+  // 但本 lib 自帶一份、不相依其他 global（保持純核心、零外部相依）。
+
+  // sRGB(0-255) → CIE L*a*b*（D65）；回 [L, a, b]
+  function srgbToLab(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+    var x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047;
+    var y = (r * 0.2126 + g * 0.7152 + b * 0.0722) / 1.0;
+    var z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+    var f = function (t) { return t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16 / 116); };
+    var fx = f(x), fy = f(y), fz = f(z);
+    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  }
+
+  // CIEDE2000 色差 ΔE00（lab 為 [L,a,b]）——感知均勻，≈5 為「明顯不同色」界線
+  var DEG = Math.PI / 180, POW25_7 = Math.pow(25, 7);
+  function ciede2000(lab1, lab2) {
+    var L1 = lab1[0], a1 = lab1[1], b1 = lab1[2];
+    var L2 = lab2[0], a2 = lab2[1], b2 = lab2[2];
+    var C1 = Math.sqrt(a1 * a1 + b1 * b1), C2 = Math.sqrt(a2 * a2 + b2 * b2);
+    var Cbar = (C1 + C2) / 2, Cbar7 = Math.pow(Cbar, 7);
+    var G = 0.5 * (1 - Math.sqrt(Cbar7 / (Cbar7 + POW25_7)));
+    var a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+    var C1p = Math.sqrt(a1p * a1p + b1 * b1), C2p = Math.sqrt(a2p * a2p + b2 * b2);
+    var h1p = Math.atan2(b1, a1p); if (h1p < 0) h1p += 2 * Math.PI;
+    var h2p = Math.atan2(b2, a2p); if (h2p < 0) h2p += 2 * Math.PI;
+    var dLp = L2 - L1, dCp = C2p - C1p, dhp;
+    if (C1p * C2p === 0) dhp = 0;
+    else { dhp = h2p - h1p; if (dhp > Math.PI) dhp -= 2 * Math.PI; else if (dhp < -Math.PI) dhp += 2 * Math.PI; }
+    var dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp / 2);
+    var Lbarp = (L1 + L2) / 2, Cbarp = (C1p + C2p) / 2, hbarp;
+    if (C1p * C2p === 0) hbarp = h1p + h2p;
+    else {
+      hbarp = (h1p + h2p) / 2;
+      if (Math.abs(h1p - h2p) > Math.PI) { if (h1p + h2p < 2 * Math.PI) hbarp += Math.PI; else hbarp -= Math.PI; }
+    }
+    var T = 1 - 0.17 * Math.cos(hbarp - 30 * DEG) + 0.24 * Math.cos(2 * hbarp)
+              + 0.32 * Math.cos(3 * hbarp + 6 * DEG) - 0.20 * Math.cos(4 * hbarp - 63 * DEG);
+    var dtheta = 30 * Math.exp(-Math.pow((hbarp / DEG - 275) / 25, 2));
+    var Cbarp7 = Math.pow(Cbarp, 7);
+    var Rc = 2 * Math.sqrt(Cbarp7 / (Cbarp7 + POW25_7));
+    var Sl = 1 + (0.015 * Math.pow(Lbarp - 50, 2)) / Math.sqrt(20 + Math.pow(Lbarp - 50, 2));
+    var Sc = 1 + 0.045 * Cbarp, Sh = 1 + 0.015 * Cbarp * T;
+    var Rt = -Math.sin(2 * dtheta * DEG) * Rc;
+    return Math.sqrt((dLp / Sl) * (dLp / Sl) + (dCp / Sc) * (dCp / Sc) + (dHp / Sh) * (dHp / Sh)
+                     + Rt * (dCp / Sc) * (dHp / Sh));
+  }
+
+  /**
+   * ΔE≈5 感知分布：把整張圖的用色，按「人眼感知距離」分箱成一份誠實的分布。
+   * 步驟（見 DESIGN）：
+   *   1) 5-bit/通道粗量化直方圖 → 去掉 JPEG/漸層雜訊、收斂成加權色點（opts.bits）
+   *   2) 每桶平均色 → CIELAB；依權重（像素數）由大到小
+   *   3) leader 聚類：桶由大到小，落入與某 leader ΔE00 < radius（預設 5）者併簇，否則自成 leader
+   *      （種子色即簇代表 → 穩定、O(桶數×簇數)、免反覆重算質心）
+   *   4) 每簇回其「加權平均色」色票，濾掉 < minRatio 的碎簇，依佔比由大到小、取前 maxColors
+   * 與 extractPalette 不同：這裡預設「全收」（含近白紙底/近黑線稿），佔比才加總得起來＝真實用色比例。
+   * 回 Color[]（同 decorate 形狀：r/g/b/hex/ratio/hue…），純函式、不碰 DOM。
+   */
+  function distributionByDeltaE(data, opts) {
+    opts = opts || {};
+    var radius = opts.radius == null ? 5 : opts.radius;        // ΔE00 分箱半徑（顆粒度）
+    var bits = opts.bits == null ? 5 : opts.bits;              // 預量化位元/通道（去噪；桶寬 2^(8-bits)）
+    var maxColors = opts.maxColors == null ? 24 : opts.maxColors;
+    var minRatio = opts.minRatio == null ? 0.005 : opts.minRatio; // 佔比低於此的碎簇捨去（預設 0.5%）
+    var skipW = opts.skipNearWhite === true;                   // 分布預設「全收」（含中性色）
+    var skipB = opts.skipNearBlack === true;
+    var shift = 8 - Math.max(1, Math.min(8, bits));
+
+    // 1) 粗量化直方圖（去噪 + 收斂）
+    var map = Object.create(null), total = 0;
+    for (var i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;                         // 略過透明
+      var r = data[i], g = data[i + 1], b = data[i + 2];
+      if (skipW || skipB) {
+        var mx = Math.max(r, g, b), mn = Math.min(r, g, b), chroma = mx - mn, lum = (r + g + b) / 3;
+        if (skipW && lum >= 232 && chroma <= 24) continue;
+        if (skipB && lum <= 30 && chroma <= 24) continue;
+      }
+      var key = (r >> shift) + '_' + (g >> shift) + '_' + (b >> shift);
+      var e = map[key] || (map[key] = { n: 0, sr: 0, sg: 0, sb: 0 });
+      e.n++; e.sr += r; e.sg += g; e.sb += b;
+      total++;
+    }
+    if (!total) return [];
+
+    // 2) 每桶平均色 → Lab，依權重由大到小
+    var buckets = Object.keys(map).map(function (k) {
+      var e = map[k], br = e.sr / e.n, bg = e.sg / e.n, bb = e.sb / e.n;
+      return { n: e.n, r: br, g: bg, b: bb, lab: srgbToLab(br, bg, bb) };
+    });
+    buckets.sort(function (a, b) { return b.n - a.n; });
+
+    // 3) leader 聚類（種子＝該簇最大權重色，即代表色）
+    var leaders = [];
+    for (var q = 0; q < buckets.length; q++) {
+      var bk = buckets[q], best = -1, bestD = radius;
+      for (var li = 0; li < leaders.length; li++) {
+        var d = ciede2000(bk.lab, leaders[li].lab);
+        if (d < bestD) { bestD = d; best = li; }
+      }
+      if (best >= 0) {
+        var L = leaders[best];
+        L.n += bk.n; L.sr += bk.r * bk.n; L.sg += bk.g * bk.n; L.sb += bk.b * bk.n;
+      } else {
+        leaders.push({ n: bk.n, sr: bk.r * bk.n, sg: bk.g * bk.n, sb: bk.b * bk.n, lab: bk.lab });
+      }
+    }
+
+    // 4) 每簇 → 加權平均色色票；濾碎簇、依佔比排序、取前 maxColors
+    var out = leaders.map(function (L) {
+      return decorate(Math.round(L.sr / L.n), Math.round(L.sg / L.n), Math.round(L.sb / L.n), L.n / total);
+    }).filter(function (c) { return c.ratio >= minRatio; });
+    out.sort(function (a, b) { return b.ratio - a.ratio; });
+    return out.length > maxColors ? out.slice(0, maxColors) : out;
+  }
+
   // ---- 小工具 ------------------------------------------------------------
   function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -454,6 +576,7 @@
     rgbToHex: rgbToHex,
     rgbToHsl: rgbToHsl,
     extractPalette: extractPalette,
+    distributionByDeltaE: distributionByDeltaE,
     sortByHue: sortByHue,
     representativeHue: representativeHue,
     compareByHue: compareByHue,
