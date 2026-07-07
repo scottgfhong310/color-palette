@@ -39,6 +39,7 @@ I18n.register('zh-Hant', {
   'detail.tab.dominant': '主色',
   'detail.tab.all': '全收',
   'detail.tab.distribution': '分布',
+  'detail.tab.accent': '重點色',
   'detail.copyAll': '複製全部色碼',
   'detail.saveMd': '存成 .md 並在 markdown-library 開啟',
   'md.heading': '色票',

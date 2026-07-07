@@ -377,10 +377,10 @@
     var f = findFile(detailName);
     var colors;
     if (detailData) {
-      // 分布視圖走感知分箱（ΔE≈5）；其餘視圖走 median/frequency 萃取
-      colors = (detailView === 'distribution')
-        ? Lib.distributionByDeltaE(detailData, { radius: 5 })
-        : Lib.extractPalette(detailData, detailOptsFor(detailView));
+      // 分布＝ΔE≈5 感知分箱；重點色＝彩度加權顯著性；其餘走 median/frequency 萃取
+      if (detailView === 'distribution') colors = Lib.distributionByDeltaE(detailData, { radius: 5 });
+      else if (detailView === 'accent') colors = Lib.accentColors(detailData, { radius: 5 });
+      else colors = Lib.extractPalette(detailData, detailOptsFor(detailView));
     } else {
       colors = (f && f.alias && f.alias.colors) || [];       // 後備：落地色票
     }

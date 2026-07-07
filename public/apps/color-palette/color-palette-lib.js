@@ -406,6 +406,72 @@
     return out.length > maxColors ? out.slice(0, maxColors) : out;
   }
 
+  /**
+   * 重點色 / accent：以「彩度加權」找出最搶眼的色（顯著性 ≠ 面積）。
+   * 每個像素權重 = 其 Lab 彩度超過 chromaFloor 的部分 ^gamma；近中性（低彩度）像素權重 ≈ 0。
+   * 因此小面積但鮮豔的重點色（紅唇、紅點、寶石）被放大浮上來，大面積的白/灰/黑與低彩膚色被壓下去。
+   * 分箱同 distributionByDeltaE（CIELAB + CIEDE2000 leader 聚類），差別在：
+   *   - leader 由「彩度權重」由大到小排序（種子＝最搶眼的色，非最大面積）
+   *   - 代表色為「彩度加權平均」→ 質心偏向鮮豔成員，不會被同簇的暗濁像素拉走
+   * 回 Color[]（同 decorate 形狀），ratio＝該色的「顯著度佔比」（占全圖彩度總量，非面積）。純函式。
+   */
+  function accentColors(data, opts) {
+    opts = opts || {};
+    var radius = opts.radius == null ? 5 : opts.radius;          // ΔE00 併簇半徑
+    var chromaFloor = opts.chromaFloor == null ? 14 : opts.chromaFloor; // Lab 彩度低於此＝中性，不計
+    var gamma = opts.gamma == null ? 2 : opts.gamma;             // 彩度加權指數（>1 更強調鮮豔）
+    var bits = opts.bits == null ? 5 : opts.bits;
+    var maxColors = opts.maxColors == null ? 12 : opts.maxColors;
+    var minRatio = opts.minRatio == null ? 0.01 : opts.minRatio; // 顯著度佔比低於此濾掉
+    var shift = 8 - Math.max(1, Math.min(8, bits));
+
+    // 1) 粗量化直方圖：桶內累加「彩度權重」與彩度加權色和（近中性像素略過）
+    var map = Object.create(null);
+    for (var i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;
+      var r = data[i], g = data[i + 1], b = data[i + 2];
+      var pl = srgbToLab(r, g, b);
+      var C = Math.sqrt(pl[1] * pl[1] + pl[2] * pl[2]);
+      if (C <= chromaFloor) continue;                            // 近中性 → 非重點色
+      var wgt = Math.pow(C - chromaFloor, gamma);
+      var key = (r >> shift) + '_' + (g >> shift) + '_' + (b >> shift);
+      var e = map[key] || (map[key] = { w: 0, sr: 0, sg: 0, sb: 0 });
+      e.w += wgt; e.sr += r * wgt; e.sg += g * wgt; e.sb += b * wgt;
+    }
+    var keys = Object.keys(map);
+    if (!keys.length) return [];
+    var totalW = 0;
+    var buckets = keys.map(function (k) {
+      var e = map[k], br = e.sr / e.w, bg = e.sg / e.w, bb = e.sb / e.w;
+      totalW += e.w;
+      return { w: e.w, r: br, g: bg, b: bb, lab: srgbToLab(br, bg, bb) };
+    });
+    buckets.sort(function (a, b) { return b.w - a.w; });
+
+    // 2) leader 聚類（種子＝彩度權重最大的桶）
+    var leaders = [];
+    for (var q = 0; q < buckets.length; q++) {
+      var bk = buckets[q], best = -1, bestD = radius;
+      for (var li = 0; li < leaders.length; li++) {
+        var d = ciede2000(bk.lab, leaders[li].lab);
+        if (d < bestD) { bestD = d; best = li; }
+      }
+      if (best >= 0) {
+        var Ld = leaders[best];
+        Ld.w += bk.w; Ld.sr += bk.r * bk.w; Ld.sg += bk.g * bk.w; Ld.sb += bk.b * bk.w;
+      } else {
+        leaders.push({ w: bk.w, sr: bk.r * bk.w, sg: bk.g * bk.w, sb: bk.b * bk.w, lab: bk.lab });
+      }
+    }
+
+    // 3) 每簇 → 彩度加權平均色；ratio＝顯著度佔比；濾小、排序、取前 maxColors
+    var out = leaders.map(function (Ld) {
+      return decorate(Math.round(Ld.sr / Ld.w), Math.round(Ld.sg / Ld.w), Math.round(Ld.sb / Ld.w), Ld.w / totalW);
+    }).filter(function (c) { return c.ratio >= minRatio; });
+    out.sort(function (a, b) { return b.ratio - a.ratio; });
+    return out.length > maxColors ? out.slice(0, maxColors) : out;
+  }
+
   // ---- 小工具 ------------------------------------------------------------
   function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -577,6 +643,7 @@
     rgbToHsl: rgbToHsl,
     extractPalette: extractPalette,
     distributionByDeltaE: distributionByDeltaE,
+    accentColors: accentColors,
     sortByHue: sortByHue,
     representativeHue: representativeHue,
     compareByHue: compareByHue,

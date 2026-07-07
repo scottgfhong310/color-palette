@@ -39,6 +39,7 @@ I18n.register('ja', {
   'detail.tab.dominant': '主要色',
   'detail.tab.all': '全て',
   'detail.tab.distribution': '分布',
+  'detail.tab.accent': 'アクセント',
   'detail.copyAll': '色コードを全てコピー',
   'detail.saveMd': '.md として保存し markdown-library で開く',
   'md.heading': 'カラーパレット',

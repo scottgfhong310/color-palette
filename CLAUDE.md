@@ -45,11 +45,12 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 - **i18n**：`i18n.js` 引擎 + `locales/*.js`，`data-i18n` 屬性，預設 `zh-Hant`；**色值/檔名不翻譯**。
 - **最接近 Faber-Castell 色**：明細每列與燈箱取色鏡顯示「≈ FC### 名稱 ΔE」（＋2 替代色）——比對
   複製件 `FaberCastellCssLib.nearestFC`（CIEDE2000 ΔE00、排除金屬色）。純比對、無 DOM 邊界變動。
-- **明細萃取視圖分頁**（對齊 `thangka-trace` 的用色清單面板）：色族（median）／主色（frequency）／全收（不濾近白黑，含紙底/線稿）／**分布**，
-  開啟時即時重萃取（離屏 240px）——前三者走 `Lib.extractPalette`；**分布走 `Lib.distributionByDeltaE`**（ΔE≈5 感知分箱）。
+- **明細萃取視圖分頁**（對齊 `thangka-trace` 的用色清單面板）：色族（median）／主色（frequency）／全收（不濾近白黑，含紙底/線稿）／**分布**／**重點色**，
+  開啟時即時重萃取（離屏 240px）——前三者走 `Lib.extractPalette`；**分布走 `Lib.distributionByDeltaE`**（ΔE≈5 感知分箱）、**重點色走 `Lib.accentColors`**（彩度加權顯著性）。
   工具列另有**複製全部色碼**與**存 `.md`**（左圖右表、SVG 色塊必印，交 `markdown-library` 以 `?mymd` 絕對路徑開啟）。落地 alias 仍是 hue-sorted 指紋，分頁為即時檢視、不改 registry。
 - **ΔE≈5 感知用色分布** `distributionByDeltaE`（純函式）：5-bit 粗量化去噪 → 每桶平均色轉 **CIELAB** → 依權重 leader 聚類（**CIEDE2000 ΔE00** < radius 併簇）→ 回加權平均色色票（依佔比排序）。
   預設「全收」（含中性色）故佔比加總得起來＝真實用色比例；自帶 `srgbToLab`/`ciede2000`、不相依 `faber-castell-color-lib`（保持純核心零外部相依）。顆粒度取捨見 [DESIGN.md](DESIGN.md)。
+- **重點色 accent** `accentColors`（純函式，DESIGN §10）：**彩度加權**的顯著性萃取——每像素權重 `(Lab 彩度−chromaFloor)^gamma`（預設 `gamma=2`、`chromaFloor=14`），近中性像素權重 0。小面積但鮮豔的色（紅唇、紅點）會浮上來，`ratio`＝顯著度佔比（非面積）。與面積視圖互補：面積視圖答「用了什麼、各多少」，重點色答「哪些最搶眼」。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 
 ## 複製件登記（共用件改版時回來同步）
