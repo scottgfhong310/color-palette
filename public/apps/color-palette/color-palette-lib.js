@@ -40,6 +40,7 @@
   var FILES_API = '/api/color-palette/files';
   var ALIAS_API = '/api/color-palette/alias';
   var DELETE_API = '/api/color-palette/delete';
+  var SAVEMD_API = '/api/color-palette/save-md';
   var CLEAR_API = '/api/color-palette/clear';
   var STATIC_BASE = '/upload/' + FOLDER + '/';
 
@@ -407,6 +408,20 @@
       });
   }
 
+  // 產生色票 .md 到 palettes/；回 { ok, name, path }（path＝站台絕對路徑原文）
+  function saveMd(name, content) {
+    return fetch(SAVEMD_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, content: content })
+    })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (d) {
+        if (!d || !d.ok) throw new Error((d && d.error) || '存檔失敗');
+        return d;
+      });
+  }
+
   // 刪除單一檔案（連同其 registry alias）
   function deleteFile(name) {
     return fetch(DELETE_API, {
@@ -449,6 +464,7 @@
     uploadFile: uploadFile,
     listFiles: listFiles,
     saveAlias: saveAlias,
+    saveMd: saveMd,
     deleteFile: deleteFile,
     clearFolder: clearFolder
   };

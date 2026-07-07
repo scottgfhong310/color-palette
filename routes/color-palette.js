@@ -30,6 +30,8 @@ const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'upload', 'color-palette
 // 色票 registry（隱藏檔 → 不被 /files 列入；clear 時另行清空）
 const REGISTRY_PATH = path.join(UPLOAD_DIR, '.registry.json');
 const BAK_DIR = path.join(UPLOAD_DIR, '.bak');
+// 產生的色票 .md（子夾，不被 /files 列入、/clear 只刪可見「檔」故子夾亦保留）；由 markdown-library 以 ?mymd 絕對路徑打開
+const MD_DIR = path.join(UPLOAD_DIR, 'palettes');
 
 // 圖片副檔名白名單（picker accept + 後端再驗；與 lib 的 isImage 對齊）
 const IMAGE_RE = /\.(png|jpe?g|webp|gif|bmp)$/i;
@@ -51,6 +53,16 @@ function sanitizeName(name) {
   if (/[\/\\\0]/.test(trimmed)) return null;
   if (!IMAGE_RE.test(trimmed)) return null;
   return trimmed;
+}
+
+// .md 檔名消毒：basename===原值、不含 / \ \0、非純 .、無控制字元、須 .md（允許 CJK/空白）
+function sanitizeMdName(name) {
+  if (!name || typeof name !== 'string') return null;
+  const t = name.trim();
+  if (!t || path.basename(t) !== t) return null;
+  if (/^\.+/.test(t) || /[\/\\\0]/.test(t) || !/\.md$/i.test(t)) return null;
+  for (let i = 0; i < t.length; i++) if (t.charCodeAt(i) < 0x20) return null;
+  return t;
 }
 
 function pad2(n) { return String(n).padStart(2, '0'); }
@@ -158,6 +170,25 @@ router.post('/alias', async (req, res) => {
     return res.json({ ok: true, name, alias });
   } catch (err) {
     console.error('[color-palette] POST /alias failed:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// POST /api/color-palette/save-md — 產生色票 .md 到 palettes/（供 markdown-library 以 ?mymd 絕對路徑打開）
+// body: { name, content }
+router.post('/save-md', async (req, res) => {
+  const name = sanitizeMdName(req.body && req.body.name);
+  if (!name) return res.status(400).json({ ok: false, error: '不允許的檔名' });
+  const content = req.body && req.body.content;
+  if (typeof content !== 'string') return res.status(400).json({ ok: false, error: 'content 需為字串' });
+  if (content.length > 300000) return res.status(400).json({ ok: false, error: '內容過長' });
+  try {
+    await fs.mkdir(MD_DIR, { recursive: true });
+    await fs.writeFile(path.join(MD_DIR, name), content, 'utf8');
+    console.log('[color-palette] POST /save-md →', name);
+    return res.json({ ok: true, name, path: '/upload/color-palette/palettes/' + name });   // 站台絕對路徑（原文，前端再 encode）
+  } catch (err) {
+    console.error('[color-palette] POST /save-md failed:', err);
     return res.status(500).json({ ok: false, error: err.message });
   }
 });

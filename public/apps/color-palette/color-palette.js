@@ -404,32 +404,52 @@
         .catch(function () { toast('toast.copyFail', 'red'); });
     } else { toast('toast.copyFail', 'red'); }
   }
-  // 匯出目前視圖為 PNG 色卡（比照 thangka-trace）
-  function exportDetailPng() {
-    var sw = detailColors; if (!sw.length) return;
-    var pad = 16, rowH = 34, chip = 24, headH = 30, W = 320, H = headH + pad + sw.length * rowH + pad, scale = 2;
-    var cv = document.createElement('canvas'); cv.width = W * scale; cv.height = H * scale;
-    var ctx = cv.getContext('2d'); ctx.scale(scale, scale);
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#1f2328'; ctx.font = '600 14px -apple-system, "Noto Sans TC", sans-serif'; ctx.textBaseline = 'middle';
-    ctx.fillText(detailName, pad, headH / 2 + 6);
-    sw.forEach(function (c, i) {
-      var y = headH + pad + i * rowH;
-      ctx.fillStyle = c.hex; ctx.fillRect(pad, y, chip, chip);
-      ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.strokeRect(pad + 0.5, y + 0.5, chip, chip);
-      ctx.fillStyle = '#1f2328'; ctx.font = '13px ui-monospace, Menlo, Consolas, monospace';
-      ctx.fillText(c.hex.toUpperCase(), pad + chip + 12, y + chip / 2);
-      if (isFinite(c.ratio)) {
-        ctx.fillStyle = '#57606a'; ctx.font = '12px -apple-system, sans-serif';
-        var pct = Math.round(c.ratio * 100) + '%';
-        ctx.fillText(pct, W - pad - ctx.measureText(pct).width, y + chip / 2);
-      }
-    });
-    var a = document.createElement('a');
-    a.href = cv.toDataURL('image/png');
-    a.download = detailName.replace(/\.[^.]+$/, '') + '-palette-' + detailView + '.png';
-    document.body.appendChild(a); a.click(); a.remove();
-    toast('toast.pngExported', 'green');
+  // 產生目前視圖的色票 .md：左右兩欄——圖在左（寬約 A4 橫向 1/3），色票表在右
+  //   整塊用 HTML（zero-md 把 raw HTML 區塊原樣渲染）；務必**單一連續區塊、無內部空行**（否則 marked 會提前結束 HTML 區塊）
+  function mdEsc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function buildPaletteMd(f) {
+    var stem = detailName.replace(/\.[^.]+$/, '');
+    var sub = I18n.t('detail.tab.' + detailView) + ' · ' + detailColors.length + ' · ' + Lib.formatSize(f.size);
+    var rows = detailColors.map(function (c) {
+      var pct = Math.round((c.ratio || 0) * 100) + '%';
+      var sw = '<span style="display:inline-block;width:1.1em;height:1.1em;background:' + c.hex +
+               ';border:1px solid #8886;border-radius:3px;vertical-align:middle"></span>';
+      var m = fcNear(c.hex, 1)[0];
+      var fc = m ? ('<code>FC' + m.code + '</code> ' + mdEsc(m.name) + ' ΔE' + Math.round(m.deltaE)) : '—';
+      return '<tr><td>' + sw + '</td><td><code>' + c.hex.toUpperCase() + '</code></td><td>' + pct + '</td><td>' + fc + '</td></tr>';
+    }).join('');
+    // A4 橫向寬 297mm，1/3 ≈ 99mm → 以 max-width:99mm 直接鎖定「A4 橫向 1/3 左右」
+    var html =
+      '<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
+        '<div style="flex:0 0 auto;width:33%;max-width:99mm;min-width:150px">' +
+          '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="width:100%;height:auto;border-radius:6px;border:1px solid #8883">' +
+          '<div style="font-size:.82em;opacity:.7;margin-top:6px">' + mdEsc(sub) + '</div>' +
+        '</div>' +
+        '<div style="flex:1 1 0;min-width:260px">' +
+          '<table><thead><tr><th></th><th>Hex</th><th>' + mdEsc(I18n.t('md.ratio')) + '</th><th>&#8776; Faber-Castell</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table>' +
+        '</div>' +
+      '</div>';
+    return [
+      '# ' + stem + ' — ' + I18n.t('md.heading'),
+      '',
+      html,
+      '',
+      '<sub>' + I18n.t('md.footer') + '</sub>'
+    ].join('\n');
+  }
+  // 存成 .md 到 palettes/，並在 markdown-library 以 ?mymd 絕對路徑開啟
+  function saveDetailMd() {
+    var f = findFile(detailName); if (!f || !detailColors.length) return;
+    var fname = detailName.replace(/\.[^.]+$/, '') + '-palette-' + detailView + '.md';
+    showLoading();
+    Lib.saveMd(fname, buildPaletteMd(f))
+      .then(function (d) {
+        hideLoading();
+        toast('toast.mdSaved', 'green', { n: fname });
+        window.open('/apps/markdown-library/?mymd=' + encodeURIComponent(d.path), '_blank', 'noopener');
+      })
+      .catch(function (err) { hideLoading(); toast('toast.mdFail', 'red', { m: err.message }); });
   }
 
   // ---- 燈箱：細看原圖 ＋ 色票互動（縮放/色距的純數學在 lib，這裡碰 DOM/canvas） --
@@ -718,7 +738,7 @@
       renderDetailPalette();
     });
     $('#detail-copyall').on('click', copyAllDetail);
-    $('#detail-png').on('click', exportDetailPng);
+    $('#detail-md').on('click', saveDetailMd);
 
     // 萃取法切換（median ↔ frequency）
     $('#setting-method').on('click', function () {
