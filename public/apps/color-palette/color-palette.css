@@ -239,7 +239,8 @@ body.density-compact .pcard-hint { display: none; }
 .detail-sub { font-size: .82rem; color: var(--muted); margin-top: 4px; }
 
 .detail-list {
-  margin: 0;
+  margin: 0 -24px 0 0;             /* 突破 modal-content 右 24px 內距 → 捲軸貼近右邊界（比照 thangka） */
+  padding-right: 6px;
   flex: 1 1 auto; min-height: 0;   /* 可縮才會出現捲軸 */
   overflow-y: auto;                /* 唯一捲動區 */
 }
@@ -270,19 +271,19 @@ body.density-compact .pcard-hint { display: none; }
 .detail-act:hover { background: var(--surface-2); color: var(--accent); }
 .detail-act i.material-icons { font-size: 19px; }
 .detail-list li {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; gap: 10px;
   padding: 7px 0; border-bottom: 1px solid var(--border);
 }
 .detail-list li:last-child { border-bottom: none; }
 .detail-chip {
-  width: 34px; height: 34px; border-radius: 8px; flex: 0 0 auto;
+  width: 26px; height: 26px; border-radius: 6px; flex: 0 0 auto;
   border: 1px solid var(--border);
 }
 .detail-hex {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: .9rem; text-transform: uppercase; min-width: 84px;
 }
-.detail-ratio { color: var(--muted); font-size: .85rem; margin-left: auto; margin-right: 6px; }   /* 與捲軸留約 5px 間距 */
+.detail-ratio { color: var(--muted); font-size: .85rem; margin-left: auto; }   /* 與捲軸間距由 .detail-list padding-right 提供 */
 .detail-bar {
   flex: 1 1 auto; height: 8px; border-radius: 4px;
   background: var(--surface-2); overflow: hidden; max-width: 180px;
@@ -426,7 +427,7 @@ body.density-compact .pcard-hint { display: none; }
 .fc-alt { width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--border); }
 /* 明細每列：讓 ≈FC 標籤換到色塊下方自成一行 */
 .detail-list li { flex-wrap: wrap; }
-.detail-list .fc-near { flex-basis: 100%; margin-left: 46px; margin-top: 1px; }
+.detail-list .fc-near { flex-basis: 100%; margin-left: 36px; margin-top: 1px; }   /* 26 chip + 10 gap */
 /* 燈箱取色列與放大鏡的 FC 行 */
 .lightbox-pick-fc, .loupe-fc { display: inline-flex; }
 .loupe-fc .fc-near { color: rgba(255,255,255,.8); }
