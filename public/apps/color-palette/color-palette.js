@@ -430,11 +430,13 @@
       return '<tr style="break-inside:avoid;page-break-inside:avoid"><td>' + mdSwatchSvg(c.hex) +
              '</td><td><code>' + c.hex.toUpperCase() + '</code></td><td>' + pct + '</td><td>' + mdFcCell(c.hex) + '</td></tr>';
     }).join('');
-    return '<table><thead><tr><th></th><th>Hex</th><th>' + mdEsc(I18n.t('md.ratio')) +
+    return '<table style="width:100%"><thead><tr><th></th><th>Hex</th><th>' + mdEsc(I18n.t('md.ratio')) +
            '</th><th>&#8776; Faber-Castell</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
   // 總覽比例色帶：單一 SVG，寬 100%，各色寬度依 ratio（正規化到顯示總和填滿）；SVG＝前景，必印
-  function mdBandSvg(colors) {
+  //   h＝顯示高度（px）；viewBox 高固定 10、preserveAspectRatio none → 垂直拉伸到 h（色塊等比變高）
+  function mdBandSvg(colors, h) {
+    h = h || 30;
     var total = colors.reduce(function (s, c) { return s + (c.ratio || 0); }, 0) || 1;
     var x = 0;
     var segs = colors.map(function (c) {
@@ -442,7 +444,7 @@
       var r = '<rect x="' + x.toFixed(3) + '" y="0" width="' + w.toFixed(3) + '" height="10" fill="' + c.hex + '"/>';
       x += w; return r;
     }).join('');
-    return '<svg viewBox="0 0 100 10" preserveAspectRatio="none" width="100%" height="12" ' +
+    return '<svg viewBox="0 0 100 10" preserveAspectRatio="none" width="100%" height="' + h + '" ' +
            'style="display:block;border-radius:3px;overflow:hidden;border:1px solid #8883">' + segs + '</svg>';
   }
   // 圖框 style：寬 ≤ A4 橫向 1/3（297/3 ≈ 99mm）、高 ≤ 一頁可印（≈150mm）、等比縮到框內
@@ -461,50 +463,59 @@
     return ['## ' + stem + ' — ' + I18n.t('md.heading'), '', html, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
   }
 
-  // 完整色彩報告：五構面（全放）從同一份 detailData 各算一次，每段 cap 16 列。
-  //   版面＝總覽頭（圖左 + 五條比例色帶）＋ 五構面段；分頁點設在段邊界（每段 break-inside:avoid 整段不裂）。
-  //   ratio 三種尺不可混：面積/真實面積/顯著度——各段標題註明（見 COLOR-TYPES.md）。
-  var REPORT_CAP = 16;
-  var REPORT_FACETS = [
-    { view: 'family', note: 'md.note.area' },
-    { view: 'dominant', note: 'md.note.area' },
-    { view: 'all', note: 'md.note.area' },
-    { view: 'distribution', note: 'md.note.trueArea' },
-    { view: 'accent', note: 'md.note.saliency' }
-  ];
-  function reportFacetColors(view) {
-    if (view === 'distribution') return Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: REPORT_CAP });
-    if (view === 'accent') return Lib.accentColors(detailData, { radius: 5, maxColors: REPORT_CAP });
-    return Lib.extractPalette(detailData, detailOptsFor(view)).slice(0, REPORT_CAP);
-  }
+  // 完整色彩報告（分頁版）：
+  //   P1 總覽頭＝圖左 + 五條比例色帶（帶高 30＝原 12 的 2.5×）
+  //   P2 色族 | 主色（兩欄，各 12）｜ P3 全收（單欄 12）
+  //   P4 分布（兩欄，各 12＝24）｜ P5 重點色（兩欄，各 12＝24）
+  //   分頁點：P2–P5 各自 break-before:page（強制新頁）；ratio 三種尺各段標題註明（見 COLOR-TYPES.md）。
   function buildReportMd(f) {
     var stem = detailName.replace(/\.[^.]+$/, '');
-    var facets = REPORT_FACETS.map(function (ff) {
-      return { name: I18n.t('detail.tab.' + ff.view), note: I18n.t(ff.note), colors: reportFacetColors(ff.view) };
-    });
-    // 總覽頭（整塊 block、break-inside:avoid＝圖＋五色帶不裂）：右側每構面一條比例色帶
-    var strips = facets.map(function (fc) {
-      return '<div style="margin:0 0 9px"><div style="font-size:.8em;opacity:.72;margin-bottom:2px">' +
-             mdEsc(fc.name) + ' <span style="opacity:.6">· ' + mdEsc(fc.note) + '</span></div>' + mdBandSvg(fc.colors) + '</div>';
+    // 取色：色族/主色/全收 12；分布/重點色 24（頁內分兩欄各 12）
+    var fam = Lib.extractPalette(detailData, detailOptsFor('family')).slice(0, 12);
+    var dom = Lib.extractPalette(detailData, detailOptsFor('dominant')).slice(0, 12);
+    var all = Lib.extractPalette(detailData, detailOptsFor('all')).slice(0, 12);
+    var dist = Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: 24 });
+    var acc = Lib.accentColors(detailData, { radius: 5, maxColors: 24 });
+    var T = { fam: I18n.t('detail.tab.family'), dom: I18n.t('detail.tab.dominant'), all: I18n.t('detail.tab.all'),
+              dist: I18n.t('detail.tab.distribution'), acc: I18n.t('detail.tab.accent') };
+    var N = { area: I18n.t('md.note.area'), trueArea: I18n.t('md.note.trueArea'), sal: I18n.t('md.note.saliency') };
+
+    function h3(name, note) {
+      return '<h3 style="margin:0 0 6px">' + mdEsc(name) +
+             ' <span style="font-size:.68em;font-weight:400;opacity:.6">· ' + mdEsc(note) + '</span></h3>';
+    }
+    function col(inner) { return '<div style="flex:1 1 0;min-width:0">' + inner + '</div>'; }
+    function twoCol(left, right) { return '<div style="display:flex;gap:24px;align-items:flex-start">' + left + right + '</div>'; }
+    // 頁：強制換頁（block 上掛 break-before，非 flex 子項）
+    function page(inner) { return '<div style="break-before:page;page-break-before:always;margin-top:6px">' + inner + '</div>'; }
+
+    // P1 總覽頭（break-inside:avoid＝圖＋五色帶不裂）；色帶高 30（＝原 12 × 2.5）
+    var bands = [
+      { n: T.fam, o: N.area, c: fam }, { n: T.dom, o: N.area, c: dom }, { n: T.all, o: N.area, c: all },
+      { n: T.dist, o: N.trueArea, c: dist }, { n: T.acc, o: N.sal, c: acc }
+    ].map(function (b) {
+      return '<div style="margin:0 0 12px"><div style="font-size:.85em;opacity:.72;margin-bottom:3px">' +
+             mdEsc(b.n) + ' <span style="opacity:.6">· ' + mdEsc(b.o) + '</span></div>' + mdBandSvg(b.c, 30) + '</div>';
     }).join('');
-    var head =
+    var overview =
       '<div style="break-inside:avoid;page-break-inside:avoid;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
         '<div style="flex:0 0 auto;max-width:99mm">' +
           '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="' + MD_IMG_STYLE + '">' +
           '<div style="font-size:.82em;opacity:.7;margin-top:6px">' + mdEsc(Lib.formatSize(f.size)) + '</div>' +
         '</div>' +
-        '<div style="flex:1 1 0;min-width:260px">' + strips + '</div>' +
+        '<div style="flex:1 1 0;min-width:260px">' + bands + '</div>' +
       '</div>';
-    // 五構面段：每段 block、break-inside:avoid（分頁點）；段內 h3 標題（用 HTML，避開 marked 對 ### 的空行規則）
-    //   各段是獨立 HTML block、以換行相接（段內無空行，符合 marked HTML 區塊規則）
-    var sections = facets.map(function (fc) {
-      return '<div style="break-inside:avoid;page-break-inside:avoid;margin-top:14px">' +
-               '<h3 style="margin:0 0 6px">' + mdEsc(fc.name) +
-               ' <span style="font-size:.68em;font-weight:400;opacity:.6">· ' + mdEsc(fc.note) + '</span></h3>' +
-               mdTableHtml(fc.colors) +
-             '</div>';
-    }).join('\n');
-    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', head, '', sections, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
+
+    // P2 色族 | 主色（各含 h3）
+    var p2 = page(twoCol(col(h3(T.fam, N.area) + mdTableHtml(fam)), col(h3(T.dom, N.area) + mdTableHtml(dom))));
+    // P3 全收（單欄 12）
+    var p3 = page('<div>' + h3(T.all, N.area) + mdTableHtml(all) + '</div>');
+    // P4 分布（一個 h3 + 兩欄各 12）
+    var p4 = page(h3(T.dist, N.trueArea) + twoCol(col(mdTableHtml(dist.slice(0, 12))), col(mdTableHtml(dist.slice(12, 24)))));
+    // P5 重點色（一個 h3 + 兩欄各 12）
+    var p5 = page(h3(T.acc, N.sal) + twoCol(col(mdTableHtml(acc.slice(0, 12))), col(mdTableHtml(acc.slice(12, 24)))));
+
+    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', overview, p2, p3, p4, p5, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
   }
   // 存成 .md 到 palettes/，並在 markdown-library 以 ?mymd 絕對路徑開啟
   function saveDetailMd() {
