@@ -105,7 +105,9 @@
           <div id="detail-sub" class="detail-sub"></div>
         </div>
       </div>
-      <!-- 工具列：萃取視圖分頁（色族/主色/全收）＋ 複製全部 / PNG 色卡 -->
+      <!-- 色彩肖像：五構面 → 一句描述（像素載入後由 ColorPortraitLib 生成） -->
+      <div id="detail-portrait" class="detail-portrait"></div>
+      <!-- 工具列：萃取視圖分頁（色族/主色/全收/分布/重點色）＋ 複製全部 / 存 .md / 完整報告 -->
       <div class="detail-tools">
         <div class="detail-tabs" id="detail-tabs">
           <button type="button" class="detail-tab" data-view="family" data-i18n="detail.tab.family">色族</button>
@@ -171,6 +173,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
   <script src="./color-palette-lib.js"></script>
+  <!-- 色彩肖像：五構面 → 一句描述（純邏輯，家族共用候選；見 CLAUDE.md 複製件登記） -->
+  <script src="./color-portrait-lib.js"></script>
   <!-- 最接近 Faber-Castell 色比對（複製自 faber-castell-color；見 CLAUDE.md 複製件登記） -->
   <script src="./faber-castell-color-lib.js"></script>
   <script src="./data/fc-colors.js"></script>

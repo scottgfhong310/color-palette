@@ -277,6 +277,12 @@ body.density-compact .pcard-hint { display: none; }
 }
 .detail-act:hover { background: var(--surface-2); color: var(--accent); }
 .detail-act i.material-icons { font-size: 19px; }
+/* 色彩肖像：一句生成的描述，用左側 accent 邊標示為「摘要」；空時隱藏 */
+.detail-portrait {
+  font-size: .82rem; line-height: 1.55; color: var(--text);
+  margin: 0 0 12px; padding-left: 10px; border-left: 2px solid var(--accent);
+}
+.detail-portrait:empty { display: none; }
 .detail-list li {
   display: flex; align-items: center; gap: 10px;
   padding: 7px 0; border-bottom: 1px solid var(--border);

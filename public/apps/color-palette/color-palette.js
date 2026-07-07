@@ -391,14 +391,28 @@
       method: I18n.t('detail.tab.' + detailView), n: colors.length, size: f ? Lib.formatSize(f.size) : ''
     }));
   }
+  // 色彩肖像：由五構面即時算一句描述填入 #detail-portrait（需 detailData；純邏輯在 ColorPortraitLib）
+  function renderPortrait() {
+    var $p = $('#detail-portrait');
+    if (!detailData || !window.ColorPortraitLib) { $p.text(''); return; }
+    try {
+      var desc = ColorPortraitLib.describe({
+        dominant: Lib.extractPalette(detailData, { method: 'frequency', count: 12 }),
+        distribution: Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: 24 }),
+        accent: Lib.accentColors(detailData, { radius: 5, maxColors: 24 })
+      });
+      $p.text(ColorPortraitLib.phrase(desc, I18n.t));
+    } catch (e) { $p.text(''); }
+  }
   function openDetail(f) {
     detailName = f.name;
     $('#detail-image').attr('src', versionedUrl(f));
     $('#detail-name').text(f.name);
+    $('#detail-portrait').text('');           // 清空，待像素載入後生成
     detailView = (f.alias && f.alias.method === 'frequency') ? 'dominant' : 'family';
     detailData = null;
     renderDetailPalette();                    // 先用落地色票即時顯示
-    loadDetailPixels(f, function () { if (detailName === f.name) renderDetailPalette(); });  // 像素載入後改即時萃取
+    loadDetailPixels(f, function () { if (detailName === f.name) { renderDetailPalette(); renderPortrait(); } });  // 像素載入後即時萃取＋肖像
     M.Modal.getInstance(document.getElementById('detail-modal')).open();
   }
   // 複製目前視圖全部色碼（每行一個 hex）
@@ -523,7 +537,14 @@
       ? page(twoCol(col(h3(T.dist, N.trueArea) + mdTableHtml(dist)), col(h3(T.acc, N.sal) + mdTableHtml(acc))))
       : page(h3(T.dist, N.trueArea) + multiCol(dist, 3)) + page(h3(T.acc, N.sal) + multiCol(acc, 3));
 
-    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', overview, p2, p3, distAcc, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
+    // 色彩肖像：一句描述放在標題下（五構面 → ColorPortraitLib）
+    var portrait = window.ColorPortraitLib
+      ? ColorPortraitLib.phrase(ColorPortraitLib.describe({ dominant: dom, distribution: dist, accent: acc, families: fam }), I18n.t)
+      : '';
+    var cap = portrait
+      ? '<p style="font-style:italic;opacity:.85;margin:.1em 0 1.1em;padding-left:10px;border-left:2px solid #8886">' + mdEsc(portrait) + '</p>'
+      : '';
+    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', cap, overview, p2, p3, distAcc, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
   }
   // 存成 .md 到 palettes/，並在 markdown-library 以 ?mymd 絕對路徑開啟
   function saveDetailMd() {
@@ -923,7 +944,7 @@
       updateMethodTool();
       updateDensityTool();
       render();
-      if (detailName && $('#detail-modal').hasClass('open')) renderDetailPalette();  // 重繪明細（換語言，保留分頁）
+      if (detailName && $('#detail-modal').hasClass('open')) { renderDetailPalette(); renderPortrait(); }  // 重繪明細＋肖像（換語言，保留分頁）
     });
   }
 
