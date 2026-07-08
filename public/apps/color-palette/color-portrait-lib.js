@@ -41,6 +41,8 @@
     return { s: s, l: l };
   }
   function isNeutral(c) { return hsl(c).s < 0.15; }
+  // HSV 飽和度＝(max−min)/max：比 HSL 更接近「色彩濃度」（淺粉彩低、深寶石高），供配色原型判斷
+  function hsvS(c) { var mx = Math.max(c.r, c.g, c.b); return mx === 0 ? 0 : (mx - Math.min(c.r, c.g, c.b)) / mx; }
   function familyOf(c) { return isNeutral(c) ? 'neutral' : familyOfHue(c.hue != null ? c.hue : 0); }
   function tempOf(c) {
     if (isNeutral(c)) return 'neutral';
@@ -149,6 +151,21 @@
     var key = keyL >= 0.6 ? 'high' : (keyL <= 0.4 ? 'low' : 'mid');
     var chroma = chr >= 0.42 ? 'vivid' : (chr <= 0.25 ? 'muted' : 'balanced');
 
+    // 明暗對比：同時有大片很暗與很亮 → 高對比
+    var darkA = 0, lightA = 0;
+    dist.forEach(function (c) { var l = hsl(c).l, w = (c.ratio || 0) / total; if (l < 0.22) darkA += w; if (l > 0.80) lightA += w; });
+    var contrast = 2 * Math.min(darkA, lightA);
+
+    // 配色原型（archetype）：把 色彩濃度(HSV)×明度×冷暖×明暗對比 綜合成可辨識的「氣質」；無明確者回 null。
+    //   用 HSV 飽和度（sat）當濃度：淺粉彩低、深寶石高。優先序：高對比 → 霓虹 → 寶石 → 粉彩 → 大地。
+    var sat = wsum(dist, function (c) { return hsvS(c) * (c.ratio || 0); }) / total;
+    var archetype = null;
+    if (contrast >= 0.22) archetype = 'high-contrast';
+    else if (sat >= 0.68 && keyL >= 0.50) archetype = 'neon';
+    else if (keyL >= 0.66 && sat >= 0.08 && sat <= 0.38) archetype = 'pastel';
+    else if (sat >= 0.20 && sat <= 0.62 && temp.warm >= temp.cool && temp.warm >= 0.30 && keyL >= 0.25 && keyL <= 0.62) archetype = 'earthy';
+    else if (sat >= 0.52 && keyL < 0.55) archetype = 'jewel';
+
     // 主色的「感覺」（頻率主色最大者）
     var dominant = dom[0]
       ? { hex: dom[0].hex, family: familyOf(dom[0]), muted: hsl(dom[0]).s < 0.3, neutral: isNeutral(dom[0]) }
@@ -200,7 +217,8 @@
     return {
       temperature: { shares: temp, verdict: tempVerdict, bothWarmCool: bothWC },
       families: families, dominant: dominant, key: key, chroma: chroma,
-      keyValue: keyL, chromaValue: chr, poles: harm.poles,   // 供視覺肖像卡
+      keyValue: keyL, chromaValue: chr, satValue: sat, poles: harm.poles,   // 供視覺肖像卡
+      archetype: archetype,
       accent: accent, focal: focal, harmony: harmony, tensions: tensions, relative: relative
     };
   }
@@ -237,8 +255,9 @@
     if (hd) parts.push(t('portrait.c.hidden', { family: fam(hd.family), pct: pct(hd.share) }));
     else if (leadFam && leadFam.share >= 0.2) parts.push(t('portrait.c.leads', { family: fam(leadFam.key), pct: pct(leadFam.share) }));
 
-    // 3) 色調（彩度 + 明度）
-    parts.push(t('portrait.c.tone', { chroma: t('portrait.chroma.' + desc.chroma), key: t('portrait.key.' + desc.key) }));
+    // 3) 色調：有明確配色原型就用它（更有「氣質」），否則用 彩度+明度
+    if (desc.archetype) parts.push(t('portrait.c.archetype', { a: t('portrait.archetype.' + desc.archetype) }));
+    else parts.push(t('portrait.c.tone', { chroma: t('portrait.chroma.' + desc.chroma), key: t('portrait.key.' + desc.key) }));
 
     // 4) 焦點色（小而鮮）；有 FC 名（opts.fcName(hex) → {code,name}）就用 named 版
     if (desc.focal) {
@@ -297,7 +316,9 @@
     var mx = 98, my = 40, ms = 48;
     P.push('<rect x="' + mx + '" y="' + my + '" width="' + ms + '" height="' + ms + '" rx="3" fill="#8881" stroke="#8886"/>');
     var domHex = (desc.dominant && desc.dominant.hex) || '#888';
-    P.push('<circle cx="' + f(mx + (desc.chromaValue || 0) * ms) + '" cy="' + f(my + (1 - (desc.keyValue || 0)) * ms) + '" r="4.5" fill="' + domHex + '" stroke="#fff" stroke-width="1"/>');
+    var satX = desc.satValue != null ? desc.satValue : (desc.chromaValue || 0);   // x＝色彩濃度(HSV)
+    P.push('<circle cx="' + f(mx + satX * ms) + '" cy="' + f(my + (1 - (desc.keyValue || 0)) * ms) + '" r="4.5" fill="' + domHex + '" stroke="#fff" stroke-width="1"/>');
+    if (desc.archetype) P.push('<text x="' + (mx + ms / 2) + '" y="' + (H - 4) + '" text-anchor="middle" font-size="8.5" fill="currentColor" opacity="0.72">' + esc(tf('portrait.archetype.' + desc.archetype)) + '</text>');
 
     // 4) 焦點色塊（focal 優先，否則主色）＋ FC 名
     var fc = desc.focal || desc.dominant;
