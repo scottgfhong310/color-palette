@@ -738,6 +738,18 @@
       'translate(' + lbView.tx + 'px,' + lbView.ty + 'px) scale(' + lbView.zoom + ')';
     document.getElementById('lightbox-zoom').textContent = Math.round(lbView.zoom * 100) + '%';
   }
+  // 依 stage 尺寸把 frame 設成「contain 後的圖尺寸」（不放大超過原圖）。
+  // img 與 mask 皆填滿 frame（CSS 100%）→ 遮罩恆等於整張圖、高圖在 identity view 就完整 fit。
+  function fitLbFrame() {
+    var stage = document.getElementById('lightbox-stage');
+    var img = document.getElementById('lightbox-img');
+    var frame = document.getElementById('lightbox-frame');
+    var iw = img.naturalWidth, ih = img.naturalHeight;
+    if (!iw || !ih) return;
+    var s = Math.min(1, Math.min(stage.clientWidth / iw, stage.clientHeight / ih));
+    frame.style.width = Math.round(iw * s) + 'px';
+    frame.style.height = Math.round(ih * s) + 'px';
+  }
   function openLightbox(name) {
     var f = findFile(name);
     if (!f) return;
@@ -748,7 +760,7 @@
     lbPinned = null; hidePick();
     var img = document.getElementById('lightbox-img');
     lbSample = null;
-    var onLoad = function () { if (img.naturalWidth) prepLbSample(img); };
+    var onLoad = function () { if (img.naturalWidth) { fitLbFrame(); prepLbSample(img); } };
     img.onload = onLoad;
     img.src = versionedUrl(f);
     if (img.complete && img.naturalWidth) onLoad();   // 快取命中時 onload 可能不觸發
@@ -976,6 +988,8 @@
     });
 
     document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+    // 視窗尺寸變動時，若燈箱開著就重新 fit（frame 依 stage 重算；遮罩/圖為 100% 隨之更新）
+    window.addEventListener('resize', function () { if (lbIsOpen()) fitLbFrame(); });
     // Esc 關閉（capture：先於 Materialize modal 的 Esc，避免同時關掉底下的明細）
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && lbIsOpen()) { e.stopImmediatePropagation(); e.preventDefault(); closeLightbox(); }
