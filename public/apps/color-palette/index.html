@@ -46,6 +46,9 @@
         </div>
       </div>
 
+      <!-- 依色彩肖像篩選：chip 依現有標籤動態生成（溫度/原型/和諧/明度）；點擊即時過濾 gallery -->
+      <div id="filter-bar" class="filter-bar" hidden></div>
+
       <!-- 色票 gallery：每張圖一張卡；有 alias 顯示色塊、沒有顯示檔名 -->
       <section id="gallery" class="gallery" aria-live="polite"></section>
     </div>
@@ -83,6 +86,9 @@
     </div>
     <div id="setting-density" class="side-tool" data-i18n-title="tool.density" title="瀏覽密度：縮圖 / 色票牆">
       <i class="material-icons">view_module</i>
+    </div>
+    <div id="setting-filter" class="side-tool" data-i18n-title="tool.filter" title="依色彩肖像篩選">
+      <i class="material-icons">filter_list</i>
     </div>
     <div id="setting-mode" class="side-tool" data-i18n-title="tool.mode" title="切換 light / dark">
       <i class="material-icons">dark_mode</i>

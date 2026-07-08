@@ -179,14 +179,68 @@
     return $card;
   }
 
+  // ---- 依色彩肖像篩選（可查詢 metadata）----------------------------------
+  var filterSet = {};   // 作用中的 'facet:value' 標籤集合（物件當 set）
+  var FILTER_FACETS = [
+    { facet: 'temp', values: ['warm', 'cool', 'neutral', 'warm-cool'], label: function (v) { return I18n.t('filter.temp.' + v); } },
+    { facet: 'archetype', values: ['pastel', 'earthy', 'jewel', 'neon', 'high-contrast'], label: function (v) { return I18n.t('portrait.archetype.' + v); } },
+    { facet: 'harmony', values: ['monochrome', 'analogous', 'complementary', 'split-complementary', 'triadic', 'tetradic'], label: function (v) { return I18n.t('portrait.harmony.' + v); } },
+    { facet: 'key', values: ['high', 'mid', 'low'], label: function (v) { return I18n.t('portrait.key.' + v); } }
+  ];
+  // 為每張圖算色彩肖像標籤（由 alias 色近似，零後端負擔）；供篩選比對
+  function computeTags() {
+    files.forEach(function (f) {
+      f._tags = (f.alias && f.alias.colors && f.alias.colors.length && window.ColorPortraitLib)
+        ? ColorPortraitLib.tags(ColorPortraitLib.describe({ distribution: f.alias.colors, dominant: f.alias.colors, accent: f.alias.colors }))
+        : [];
+    });
+  }
+  // 同 facet 內 OR、跨 facet AND
+  function matchesFilter(f) {
+    var keys = Object.keys(filterSet);
+    if (!keys.length) return true;
+    var byFacet = {};
+    keys.forEach(function (tag) { var fc = tag.split(':')[0]; (byFacet[fc] || (byFacet[fc] = [])).push(tag); });
+    var tg = f._tags || [];
+    return Object.keys(byFacet).every(function (fc) {
+      return byFacet[fc].some(function (tag) { return tg.indexOf(tag) >= 0; });
+    });
+  }
+  // 篩選列：chip 只列 gallery 裡真的有的值（像色軌）；顯示與否跟著 #setting-filter
+  function buildFilterBar() {
+    var $bar = $('#filter-bar');
+    if (!$('#setting-filter').hasClass('active')) { $bar.prop('hidden', true).empty(); return; }
+    $bar.prop('hidden', false).empty();
+    var present = {};
+    files.forEach(function (f) { (f._tags || []).forEach(function (t) { present[t] = true; }); });
+    FILTER_FACETS.forEach(function (fd) {
+      var vals = fd.values.filter(function (v) { return present[fd.facet + ':' + v]; });
+      if (!vals.length) return;
+      var $grp = $('<div class="filter-group">').append($('<span class="filter-facet">').text(I18n.t('filter.facet.' + fd.facet)));
+      vals.forEach(function (v) {
+        var tag = fd.facet + ':' + v;
+        $('<button type="button" class="filter-chip">').attr('data-tag', tag)
+          .toggleClass('active', !!filterSet[tag]).text(fd.label(v)).appendTo($grp);
+      });
+      $bar.append($grp);
+    });
+    if (Object.keys(filterSet).length) {
+      $bar.append($('<div class="filter-meta">')
+        .append($('<span class="filter-count">').text(I18n.t('filter.count', { n: files.filter(matchesFilter).length })))
+        .append($('<button type="button" class="filter-clear">').text(I18n.t('filter.clear'))));
+    }
+  }
+
   function render() {
     var $g = $('#gallery').empty();
+    var visible = files.filter(matchesFilter);
     // 依代表色相排序（同色系相鄰）；相同時以修改時間新→舊
-    var sorted = files.slice().sort(function (a, b) {
+    var sorted = visible.slice().sort(function (a, b) {
       var c = Lib.compareByHue(a.alias, b.alias);
       return c !== 0 ? c : (b.mtime - a.mtime);
     });
-    $('body').toggleClass('is-empty', sorted.length === 0);
+    $('body').toggleClass('is-empty', files.length === 0);
+    if (files.length && !visible.length) $g.append($('<div class="filter-none">').text(I18n.t('filter.none')));
 
     // 分群：色系（FAMILY_ORDER）→ 末端 'pending'（未分析）
     var groups = {};
@@ -218,6 +272,7 @@
     });
 
     renderRail(rail);
+    buildFilterBar();
   }
 
   // 跳轉色軌：依現有色系一顆點；點擊捲到該區
@@ -340,7 +395,7 @@
   // ---- 清單重新載入 ------------------------------------------------------
   function refresh() {
     return Lib.listFiles()
-      .then(function (list) { files = list; render(); })
+      .then(function (list) { files = list; computeTags(); render(); })
       .catch(function (err) { toast('toast.listFail', 'red', { m: err.message }); });
   }
 
@@ -922,6 +977,15 @@
     $('#setting-density').on('click', function () {
       setDensity(density === 'compact' ? 'comfortable' : 'compact');
     });
+
+    // 依色彩肖像篩選：開關篩選列 / 點 chip 切換 / 清除
+    $('#setting-filter').on('click', function () { $(this).toggleClass('active'); buildFilterBar(); });
+    $('#filter-bar').on('click', '.filter-chip', function () {
+      var tag = $(this).attr('data-tag');
+      if (filterSet[tag]) delete filterSet[tag]; else filterSet[tag] = true;
+      render();
+    });
+    $('#filter-bar').on('click', '.filter-clear', function () { filterSet = {}; render(); });
 
     // 跳轉色軌：捲到該色系區段（點下即先標記 active，捲動後由 scroll-spy 維持正確）
     $('#jump-rail').on('click', '.jump-dot', function () {

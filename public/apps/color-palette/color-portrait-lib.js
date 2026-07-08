@@ -332,5 +332,21 @@
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:' + W + 'px;display:block" xmlns="http://www.w3.org/2000/svg">' + P.join('') + '</svg>';
   }
 
-  window.ColorPortraitLib = { describe: describe, phrase: phrase, card: card, familyOfHue: familyOfHue };
+  /**
+   * 可查詢 metadata：把 Description 攤成一組正規化標籤（`facet:value`），供 gallery 篩選/搜尋。
+   * 純函式。標籤即「色彩身分」的檢索鍵——溫度／配色原型／和諧配色／明度／焦點色系。
+   */
+  function tags(desc) {
+    if (!desc) return [];
+    var t = [];
+    if (desc.temperature.bothWarmCool) t.push('temp:warm-cool');
+    else t.push('temp:' + desc.temperature.verdict.split('-')[0]);   // warm / cool / neutral
+    if (desc.archetype) t.push('archetype:' + desc.archetype);
+    if (desc.harmony && desc.harmony !== 'varied' && desc.harmony !== 'neutral') t.push('harmony:' + desc.harmony);
+    if (desc.key) t.push('key:' + desc.key);
+    if (desc.focal) t.push('focal:' + desc.focal.family);
+    return t;
+  }
+
+  window.ColorPortraitLib = { describe: describe, phrase: phrase, card: card, tags: tags, familyOfHue: familyOfHue };
 })(window);

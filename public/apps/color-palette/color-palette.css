@@ -75,6 +75,25 @@ body.is-empty #gallery { display: none; }
 /* ===== gallery（依色系分區；每區一格網） ===== */
 .gallery { display: block; }
 
+/* 依色彩肖像篩選：chip 列（可查詢 metadata） */
+.filter-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  margin: 0 0 16px; padding: 12px 14px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+}
+.filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.filter-facet { font-size: .74rem; color: var(--muted); margin-right: 2px; }
+.filter-chip {
+  border: 1px solid var(--border); background: transparent; cursor: pointer;
+  color: var(--text); font-size: .76rem; padding: 3px 11px; border-radius: 999px; font-family: inherit;
+}
+.filter-chip:hover { border-color: var(--accent); }
+.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filter-meta { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.filter-count { font-size: .76rem; color: var(--muted); }
+.filter-clear { border: none; background: transparent; cursor: pointer; color: var(--accent); font-size: .76rem; font-family: inherit; }
+.filter-none { padding: 48px 0; text-align: center; color: var(--muted); }
+
 /* 色系分區標頭：黏在頂端，捲動時當前色系不會消失（圖多時定位用） */
 .hue-section { margin-bottom: 6px; }
 .hue-header {
