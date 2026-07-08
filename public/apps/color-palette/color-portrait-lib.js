@@ -50,11 +50,24 @@
   function wsum(arr, f) { var s = 0; for (var i = 0; i < arr.length; i++) s += f(arr[i]); return s; }
   function rgbDist2(a, b) { var dr = a.r - b.r, dg = a.g - b.g, db = a.b - b.b; return dr * dr + dg * dg + db * db; }
 
+  // 面積加權的暖度（[-1,1]＝warm−cool）與彩度（[0,1]）——供「相對圖庫」比較（對任何 Color[] 皆可）
+  function metrics(colors) {
+    var tot = wsum(colors || [], function (c) { return c.ratio || 0; }) || 1, warm = 0, cool = 0, chr = 0;
+    (colors || []).forEach(function (c) {
+      var w = (c.ratio || 0) / tot, tp = tempOf(c);
+      if (tp === 'warm') warm += w; else if (tp === 'cool') cool += w;
+      chr += hsl(c).s * w;
+    });
+    return { warmth: warm - cool, chroma: chr };
+  }
+  // v 在陣列中的分位（低於 v 的比例，0–1）
+  function pctile(arr, v) { if (!arr.length) return 0.5; var n = 0; for (var i = 0; i < arr.length; i++) if (arr[i] < v) n++; return n / arr.length; }
+
   /**
    * 從五構面推出結構化描述。核心是「跨構面比較」——找出各層彼此矛盾/意外之處（tensions）。
    */
-  function describe(facets) {
-    facets = facets || {};
+  function describe(facets, opts) {
+    facets = facets || {}; opts = opts || {};
     var dist = facets.distribution || [];
     var dom = facets.dominant || [];
     var acc = facets.accent || [];
@@ -112,10 +125,28 @@
     if (focal)
       tensions.push({ type: 'small-vivid-accent', family: focal.family, familyArea: focal.familyArea });
 
+    // 相對圖庫：把本圖的暖度/彩度放進「其他圖」的分布，落在極端（前/後 25%）才發話；
+    //   語料 ≥4 張才比較；opts.self（本圖 alias 色）與 opts.corpus（其他圖色）用同源以求公平。
+    var relative = null, corpus = opts.corpus;
+    if (corpus && corpus.length >= 4) {
+      var self = metrics(opts.self && opts.self.length ? opts.self : dist);
+      var cm = corpus.map(metrics);
+      var wP = pctile(cm.map(function (m) { return m.warmth; }), self.warmth);
+      var cP = pctile(cm.map(function (m) { return m.chroma; }), self.chroma);
+      // 取「最極端」的單一指標；只在離中位 ≥ REL_MIN（約前/後 8%＝真的少見）才發話，
+      // 免得暖度或彩度任一落榜就發話（聯集會涵蓋大多數圖，太吵）。
+      var REL_MIN = 0.42;
+      var cand = [
+        { tag: wP >= 0.5 ? 'warmer' : 'cooler', d: Math.abs(wP - 0.5) },
+        { tag: cP >= 0.5 ? 'more-vivid' : 'more-muted', d: Math.abs(cP - 0.5) }
+      ].sort(function (a, b) { return b.d - a.d; });
+      if (cand[0].d >= REL_MIN) relative = { tag: cand[0].tag };
+    }
+
     return {
       temperature: { shares: temp, verdict: tempVerdict, bothWarmCool: bothWC },
       families: families, dominant: dominant, key: key, chroma: chroma,
-      accent: accent, focal: focal, harmony: harmony, tensions: tensions
+      accent: accent, focal: focal, harmony: harmony, tensions: tensions, relative: relative
     };
   }
 
@@ -125,8 +156,9 @@
    *   portrait.c.{warmCool,temp,leads,tone,focal,hidden} · portrait.sep · portrait.end
    * 找不到 key 時（未提供 locale）t 回退英文或 key 本身，仍不會壞。
    */
-  function phrase(desc, t) {
+  function phrase(desc, t, opts) {
     if (!desc || typeof t !== 'function') return '';
+    opts = opts || {};
     function fam(k) { return t('portrait.family.' + k); }
     function pct(x) { return Math.round(x * 100) + '%'; }
     var parts = [];
@@ -134,6 +166,9 @@
     // 1) 溫度 / 暖冷對比
     if (desc.harmony === 'warm-cool' || desc.temperature.bothWarmCool) parts.push(t('portrait.c.warmCool'));
     else parts.push(t('portrait.c.temp', { v: t('portrait.temp.' + desc.temperature.verdict) }));
+
+    // 1.5) 相對圖庫（前/後 25% 才有）
+    if (desc.relative) parts.push(t('portrait.c.relative', { rel: t('portrait.rel.' + desc.relative.tag) }));
 
     // 2) 隱藏主導（有張力就用它，較有訊息量）；否則講面積主導家族
     var hd = desc.tensions.filter(function (x) { return x.type === 'hidden-dominant'; })[0];
@@ -144,8 +179,12 @@
     // 3) 色調（彩度 + 明度）
     parts.push(t('portrait.c.tone', { chroma: t('portrait.chroma.' + desc.chroma), key: t('portrait.key.' + desc.key) }));
 
-    // 4) 焦點色（小而鮮）
-    if (desc.focal) parts.push(t('portrait.c.focal', { family: fam(desc.focal.family) }));
+    // 4) 焦點色（小而鮮）；有 FC 名（opts.fcName(hex) → {code,name}）就用 named 版
+    if (desc.focal) {
+      var fc = typeof opts.fcName === 'function' ? opts.fcName(desc.focal.hex) : null;
+      if (fc && fc.name) parts.push(t('portrait.c.focalNamed', { name: fc.name, code: fc.code }));
+      else parts.push(t('portrait.c.focal', { family: fam(desc.focal.family) }));
+    }
 
     var s = parts.join(t('portrait.sep')) + t('portrait.end');
     return s.charAt(0).toUpperCase() + s.slice(1);   // 英文首字大寫；CJK 為 no-op

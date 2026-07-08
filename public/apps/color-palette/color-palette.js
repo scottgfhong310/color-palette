@@ -391,17 +391,31 @@
       method: I18n.t('detail.tab.' + detailView), n: colors.length, size: f ? Lib.formatSize(f.size) : ''
     }));
   }
+  // 色彩肖像 v2 的注入項：圖庫語料（相對描述）＋ 本圖 alias（自身指標）＋ FC 名 hook（焦點命名）。
+  //   語料與自身皆取「落地 alias 色」以求同源公平比較；describe 用 corpus/self、phrase 用 fcName。
+  function portraitOpts(currentName) {
+    var corpus = files.filter(function (x) {
+      return x.name !== currentName && x.alias && x.alias.colors && x.alias.colors.length;
+    }).map(function (x) { return x.alias.colors; });
+    var cur = findFile(currentName);
+    return {
+      corpus: corpus,
+      self: (cur && cur.alias && cur.alias.colors) || null,
+      fcName: function (hex) { var m = fcNear(hex, 1)[0]; return m ? { code: m.code, name: m.name } : null; }
+    };
+  }
   // 色彩肖像：由五構面即時算一句描述填入 #detail-portrait（需 detailData；純邏輯在 ColorPortraitLib）
   function renderPortrait() {
     var $p = $('#detail-portrait');
     if (!detailData || !window.ColorPortraitLib) { $p.text(''); return; }
     try {
+      var opts = portraitOpts(detailName);
       var desc = ColorPortraitLib.describe({
         dominant: Lib.extractPalette(detailData, { method: 'frequency', count: 12 }),
         distribution: Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: 24 }),
         accent: Lib.accentColors(detailData, { radius: 5, maxColors: 24 })
-      });
-      $p.text(ColorPortraitLib.phrase(desc, I18n.t));
+      }, opts);
+      $p.text(ColorPortraitLib.phrase(desc, I18n.t, opts));
     } catch (e) { $p.text(''); }
   }
   function openDetail(f) {
@@ -509,9 +523,10 @@
     // 頁：強制換頁（block 上掛 break-before，非 flex 子項）
     function page(inner) { return '<div style="break-before:page;page-break-before:always;margin-top:6px">' + inner + '</div>'; }
 
-    // 色彩肖像：一句描述（五構面 → ColorPortraitLib），放在色條區塊正上方（進右欄、圖旁）
+    // 色彩肖像：一句描述（五構面 → ColorPortraitLib，含相對圖庫＋FC 命名焦點），放在色條區塊正上方
+    var pOpts = portraitOpts(detailName);
     var portrait = window.ColorPortraitLib
-      ? ColorPortraitLib.phrase(ColorPortraitLib.describe({ dominant: dom, distribution: dist, accent: acc, families: fam }), I18n.t)
+      ? ColorPortraitLib.phrase(ColorPortraitLib.describe({ dominant: dom, distribution: dist, accent: acc, families: fam }, pOpts), I18n.t, pOpts)
       : '';
     var portraitCap = portrait
       ? '<p style="font-style:italic;opacity:.85;margin:0 0 12px;padding-left:10px;border-left:2px solid #8886">' + mdEsc(portrait) + '</p>'
