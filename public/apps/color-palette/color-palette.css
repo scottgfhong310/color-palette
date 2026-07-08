@@ -81,6 +81,8 @@ body.is-empty #gallery { display: none; }
   margin: 0 0 16px; padding: 12px 14px;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
 }
+/* 未啟用（hidden）時整列隱藏——需比 .filter-bar 的 display:flex 更特異，否則空列仍會顯示 */
+.filter-bar[hidden] { display: none; }
 .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .filter-facet { font-size: .74rem; color: var(--muted); margin-right: 2px; }
 .filter-chip {
