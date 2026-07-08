@@ -59,7 +59,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
   潤稿只改**明細 Modal 那一句的 UI 顯示**（transient、不落地）。後端 `POST /polish`＝把決定論句＋精簡事實護欄丟給 Claude 改寫，
   **以 Node 內建 `fetch` 直呼 Anthropic Messages API（不引 SDK，維持薄後端零 npm 相依）**；金鑰走 `.env` 的 `ANTHROPIC_API_KEY`
   （app.js 內建極簡 `.env` 載入器；`ANTHROPIC_MODEL` 可覆寫，預設 `claude-opus-4-8`）。未設金鑰＝`GET /config` 回 `llm:false`、
-  明細不出現 ✨ 潤稿鈕（靜默停用）。system prompt 明令「只描述顏色、不臆造內容」，事實清單僅作 grounding 護欄；逾時 20s、錯誤回 `{ok:false,error}`。想法到設計見 [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md) §6.3。
+  明細不出現 ✨ 潤稿鈕（靜默停用）。system prompt 明令「只描述顏色、不臆造內容」，事實清單僅作 grounding 護欄；逾時 20s、錯誤回 `{ok:false,error}`。**怎麼啟用＋在 app 中如何表現見 [POLISH.md](POLISH.md)**；想法定位見 [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md) §6.3。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 
 ## 複製件登記（共用件改版時回來同步）

@@ -193,6 +193,7 @@ gallery 的 **篩選列**（側鍵 `filter_list`）依現有標籤動態生成 c
     事實清單只當 grounding 護欄（防漂移），焦點色的 FC 名/色號原樣保留。
   - 端點：`GET /api/color-palette/config`（能力探詢）、`POST /api/color-palette/polish`（`{sentence, locale, facts}` → `{ok, text}`）；
     逾時 20s、輸入裁量、`stop_reason:refusal` 與上游錯誤都回結構化 `{ok:false, error}`。
+  - **怎麼啟用（`.env` 金鑰/模型）＋在 app 中如何表現，見 [POLISH.md](POLISH.md)。**
 
 ### 6.4 關係與時間 ✅ **已實作（MVP）**
 色彩肖像從描述「一張圖」擴到描述「**一批圖**」：`ColorPortraitLib.collectionPortrait(items)`
