@@ -930,7 +930,9 @@
 
     // 拖曳平移（pointer；記錄位移量以區分「點擊背景關閉」）
     stage.addEventListener('pointerdown', function (e) {
-      lbDrag = { x0: e.clientX, y0: e.clientY, tx0: lbView.tx, ty0: lbView.ty, moved: false };
+      // onStage＝按下當時就在舞台空白處（非圖片）。務必在 setPointerCapture 之前記——
+      // capture 後 pointerup 的 target 會被重導成 stage，不能用它判斷點在哪。
+      lbDrag = { x0: e.clientX, y0: e.clientY, tx0: lbView.tx, ty0: lbView.ty, moved: false, onStage: (e.target === stage) };
       stage.classList.add('grabbing');
       stage.setPointerCapture(e.pointerId);
     });
@@ -947,11 +949,12 @@
     stage.addEventListener('pointerleave', function () { hideLoupe(); if (!lbPinned) hidePick(); });
     stage.addEventListener('pointerup', function (e) {
       var wasDrag = lbDrag && lbDrag.moved;
+      var onStage = lbDrag && lbDrag.onStage;   // 用按下當時的位置（capture 會把 pointerup.target 重導成 stage）
       lbDrag = null;
       stage.classList.remove('grabbing');
       if (wasDrag) return;
-      if (e.target === stage) closeLightbox();               // 點舞台空白處 → 關閉
-      else if (e.target === img) pinAt(e.clientX, e.clientY); // 點圖片 → 釘住該點顏色
+      if (onStage) closeLightbox();               // 點在舞台空白處（非圖片）→ 關閉
+      else pinAt(e.clientX, e.clientY);           // 點在圖片上 → 釘住該點顏色
     });
 
     // 色票側欄：點色票 → 在圖上定位該色區域（再點同一個 → 取消）
