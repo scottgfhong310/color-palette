@@ -65,6 +65,6 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 | `i18n.js` | 家族共用（`markdown-reader` 等同款引擎） |
 | `color-palette-lib.js` 的 `extractPalette` | 移植自 `thangka-trace-lib.js`（median-cut / frequency 核心） |
 | `faber-castell-color-lib.js` ＋ `data/fc-colors.js` | `faber-castell-color`（最接近 FC 色比對；改版重跑其產生器後同步複製） |
-| `data/fc-names-i18n.js`（FC 色名 zh/ja 對照，code→{zh,ja}）| 由 `Faber-Castell/faber_castell_color_code_css_foreground_zh_ja.csv` 的 `colour_name_zh_tw`／`colour_name_ja` 欄產生（勿手改）；理想上未來併入 `faber-castell-color` 的產生器成為 canonical 來源 |
+| `data/fc-names-i18n.js`（FC 色名 zh/ja 對照，code→{zh,ja}）| `faber-castell-color`（由其 `data/source/generate.js` 從 `faber_castell_color_code_css_foreground_zh_ja.csv` 一併產生；改版重跑後同步複製，同 `fc-colors.js`）|
 
 > 為什麼長這樣（registry 決策、色相排序、canvas↔lib 邊界、mergeDuplicates）見 [DESIGN.md](DESIGN.md)。

@@ -59,12 +59,12 @@
     var ms = fcNear(hex, 3); if (!ms.length) return '';
     var p = ms[0];
     var alts = ms.slice(1).map(function (m) {
-      return '<span class="fc-alt" title="FC' + m.code + ' ' + _.escape(m.name) + ' · ΔE' + m.deltaE.toFixed(1) + '" style="background:' + m.hex + '"></span>';
+      return '<span class="fc-alt" title="FC' + m.code + ' ' + _.escape(fcLocalName(m.code, m.name)) + ' · ΔE' + m.deltaE.toFixed(1) + '" style="background:' + m.hex + '"></span>';
     }).join('');
     return '<span class="fc-near">≈'
       + '<span class="fc-near-chip" style="background:' + p.hex + '"></span>'
       + '<span class="fc-near-code">FC' + p.code + '</span>'
-      + '<span class="fc-near-name">' + _.escape(p.name) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(fcLocalName(p.code, p.name)) + '</span>'
       + '<span class="fc-near-de" style="color:' + fcBand(p.band) + '">ΔE' + Math.round(p.deltaE) + '</span>'
       + (alts ? '<span class="fc-alts">' + alts + '</span>' : '')
       + '</span>';
@@ -75,7 +75,7 @@
     return '<span class="fc-near">≈'
       + '<span class="fc-near-chip" style="background:' + m.hex + '"></span>'
       + '<span class="fc-near-code">FC' + m.code + '</span>'
-      + '<span class="fc-near-name">' + _.escape(m.name) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(fcLocalName(m.code, m.name)) + '</span>'
       + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
   }
 
@@ -458,7 +458,7 @@
   }
   function mdFcCell(hex) {
     var m = fcNear(hex, 1)[0];
-    return m ? ('<code>FC' + m.code + '</code> ' + mdEsc(m.name) + ' ΔE' + Math.round(m.deltaE)) : '—';
+    return m ? ('<code>FC' + m.code + '</code> ' + mdEsc(fcLocalName(m.code, m.name)) + ' ΔE' + Math.round(m.deltaE)) : '—';
   }
   // 一段色票表（含表頭）；每列 break-inside:avoid＝跨頁時列不被切一半，thead 預設每頁重印
   function mdTableHtml(colors) {
