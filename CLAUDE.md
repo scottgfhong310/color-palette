@@ -53,7 +53,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
   預設「全收」（含中性色）故佔比加總得起來＝真實用色比例；自帶 `srgbToLab`/`ciede2000`、不相依 `faber-castell-color-lib`（保持純核心零外部相依）。顆粒度取捨見 [DESIGN.md](DESIGN.md)。
 - **重點色 accent** `accentColors`（純函式，DESIGN §10）：**彩度加權**的顯著性萃取——每像素權重 `(Lab 彩度−chromaFloor)^gamma`（預設 `gamma=2`、`chromaFloor=14`），近中性像素權重 0。小面積但鮮豔的色（紅唇、紅點）會浮上來，`ratio`＝顯著度佔比（非面積）。與面積視圖互補：面積視圖答「用了什麼、各多少」，重點色答「哪些最搶眼」。
 - **色彩肖像** `color-portrait-lib.js`（`window.ColorPortraitLib`，純函式、零相依）：吃五構面色資料 → `describe()` 回**結構化描述**（溫度暖冷／面積主導家族／明度 key／彩度／焦點色／和諧／**跨構面張力** tensions——如「看似中性卻某色以面積悄悄主導」「小而鮮的焦點色」），`phrase(desc, I18n.t)` 拼成一句；措辭全在 `portrait.*` locale（lib 不含文字）。**只描述顏色、不描述內容**（知道「一抹小而鮮的紅」，不知道是嘴唇）。明細 `#detail-portrait` 與完整報告頂端各即時生成一句。
-  **v2 加值（依賴注入、lib 仍純）**：`phrase(desc, t, {fcName})` 用 hook 把焦點色命名為實體 Faber-Castell 色，**依語言在地化**（zh「印度紅 ≈FC192」／ja「インディアンレッド」／en「India red」，色號不變；對照表 `data/fc-names-i18n.js`，控制器 `fcLocalName()`）；`describe(facets, {corpus, self})` 吃「圖庫其他圖的 alias 色」當語料，把本圖暖度/彩度放進分布，**只在約前/後 8%（`REL_MIN=0.42`，實測約 1/3 圖）才發相對句**「在你的圖庫裡算偏暖/冷/鮮/沉靜的一張」。控制器 `portraitOpts()` 組語料＋FC hook。**家族共用候選**（比照 `faber-castell-color-lib`，驗證後可抽出給 `thangka-trace` 等）。
+  **v2 加值（依賴注入、lib 仍純）**：`phrase(desc, t, {fcName})` 用 hook 把焦點色命名為實體 Faber-Castell 色，**依語言在地化**（zh「印度紅 ≈FC192」／ja「インディアンレッド」／en「India red」，色號不變；對照表 `data/fc-names-i18n.js`，控制器 `fcLocalName()`）；`describe(facets, {corpus, self})` 吃「圖庫其他圖的 alias 色」當語料，把本圖暖度/彩度放進分布，**只在約前/後 8%（`REL_MIN=0.42`，實測約 1/3 圖）才發相對句**「在你的圖庫裡算偏暖/冷/鮮/沉靜的一張」。控制器 `portraitOpts()` 組語料＋FC hook。想法到設計（五色型→v1→v2→未來）見 [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md)。**家族共用候選**（比照 `faber-castell-color-lib`，驗證後可抽出給 `thangka-trace` 等）。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 
 ## 複製件登記（共用件改版時回來同步）

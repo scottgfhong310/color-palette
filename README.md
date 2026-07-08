@@ -20,6 +20,7 @@ Part of the **nodeapp WebApp family** — shared conventions and workflow live a
 - **Browse by color at scale**: the gallery is grouped into hue families (red/orange/yellow/green/cyan/blue/purple/magenta/neutral) with sticky headers and a left-side jump rail; a density toggle switches between thumbnail cards and a compact **swatch wall**.
 - **Persisted registry**: analysis results are stored server-side, so aliases survive reloads and aren't recomputed.
 - **Five detail views**: click an alias to see the source image plus each color's hex/share, switching among five colour types — **Families / Dominant / All / Distribution / Accent** (area-representative colours, ΔE≈5 perceptual distribution, chroma-weighted saliency). What each type means and when to use it: [COLOR-TYPES.md](COLOR-TYPES.md).
+- **Colour portrait**: reasons *across* the five colour types to generate one live sentence (temperature, area-dominant family, key/chroma, focal colour, and cross-facet tensions like "feels neutral but X quietly leads"), naming the focal colour with a localised Faber-Castell name and giving an opinion relative to your whole library — from idea to design: [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md).
 - **Light / dark** themes, **zh-Hant / en / ja** i18n. Materialize components themed by the shared `materialize-dark.css`.
 
 ## Install & run
