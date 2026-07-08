@@ -63,6 +63,58 @@
   // v 在陣列中的分位（低於 v 的比例，0–1）
   function pctile(arr, v) { if (!arr.length) return 0.5; var n = 0; for (var i = 0; i < arr.length; i++) if (arr[i] < v) n++; return n / arr.length; }
 
+  // ---- 和諧配色（色彩理論）：把彩色色相聚成「極」，再依幾何分類 ----
+  var DEG = Math.PI / 180;
+  function hueDist(a, b) { var d = Math.abs(((a - b) % 360 + 360) % 360); return d > 180 ? 360 - d : d; }
+  function sortedGaps(hues) {  // 排序後的相鄰圓形間距（和＝360）
+    var h = hues.slice().sort(function (a, b) { return a - b; }), g = [];
+    for (var i = 0; i < h.length; i++) g.push(((h[(i + 1) % h.length] - h[i]) + 360) % 360);
+    return g;
+  }
+  function hueSpan(hues) { return hues.length < 2 ? 0 : 360 - Math.max.apply(null, sortedGaps(hues)); }  // 涵蓋所有極的最小弧
+  function isTetradic(h) {  // 四極能否配成兩組互補對（各≈180）
+    function comp(a, b) { return Math.abs(hueDist(a, b) - 180) <= 32; }
+    return [[0, 1, 2, 3], [0, 2, 1, 3], [0, 3, 1, 2]].some(function (p) { return comp(h[p[0]], h[p[1]]) && comp(h[p[2]], h[p[3]]); });
+  }
+  // 由分布把「有色相、有面積」的色聚成極（circular leader clustering，種子＝最大面積），
+  // 取面積 ≥7% 的顯著極，依其數量與角度關係判配色方案。
+  function harmonyOf(dist, total) {
+    var pts = [];
+    dist.forEach(function (c) {
+      if (isNeutral(c)) return;
+      pts.push({ hue: c.hue != null ? ((c.hue % 360) + 360) % 360 : 0, w: (c.ratio || 0) / total });
+    });
+    pts.sort(function (a, b) { return b.w - a.w; });
+    var poles = [], MERGE = 35;
+    pts.forEach(function (c) {
+      var best = -1, bd = MERGE;
+      for (var i = 0; i < poles.length; i++) { var d = hueDist(c.hue, poles[i].hue); if (d < bd) { bd = d; best = i; } }
+      if (best >= 0) {  // 加權合併（向量和維持圓形平均）
+        var p = poles[best];
+        p.x += Math.cos(c.hue * DEG) * c.w; p.y += Math.sin(c.hue * DEG) * c.w; p.w += c.w;
+        p.hue = (Math.atan2(p.y, p.x) / DEG + 360) % 360;
+      } else {
+        poles.push({ hue: c.hue, w: c.w, x: Math.cos(c.hue * DEG) * c.w, y: Math.sin(c.hue * DEG) * c.w });
+      }
+    });
+    var hues = poles.filter(function (p) { return p.w >= 0.07; }).sort(function (a, b) { return b.w - a.w; })
+                    .map(function (p) { return p.hue; });
+    var n = hues.length;
+    if (n === 0) return 'neutral';
+    if (n === 1) return 'monochrome';
+    if (n === 2) { var g = hueDist(hues[0], hues[1]); return g <= 40 ? 'analogous' : (g >= 145 ? 'complementary' : 'varied'); }
+    if (n === 3) {
+      if (hueSpan(hues) <= 90) return 'analogous';
+      var gaps = sortedGaps(hues);
+      if (gaps.every(function (x) { return Math.abs(x - 120) <= 35; })) return 'triadic';
+      var gs = gaps.slice().sort(function (a, b) { return a - b; });
+      if (gs[0] <= 60 && gs[1] >= 120 && Math.abs(gs[1] - gs[2]) <= 40) return 'split-complementary';
+      return 'varied';
+    }
+    if (n === 4) return isTetradic(hues) ? 'tetradic' : (hueSpan(hues) <= 90 ? 'analogous' : 'varied');
+    return 'varied';
+  }
+
   /**
    * 從五構面推出結構化描述。核心是「跨構面比較」——找出各層彼此矛盾/意外之處（tensions）。
    */
@@ -114,9 +166,8 @@
       if (fa < 0.15 && hsl(ac).s >= 0.4) { focal = { hex: ac.hex, family: fk, familyArea: fa, rank: ai + 1 }; break; }
     }
 
-    // 和諧（依面積 ≥12% 的彩色家族數）
-    var big = families.filter(function (f) { return f.key !== 'neutral' && f.share >= 0.12; });
-    var harmony = big.length <= 1 ? 'near-mono' : (bothWC ? 'warm-cool' : 'varied');
+    // 和諧配色（色彩理論）：色相聚極 → 單色/類比/互補/分裂互補/三角/四角/varied
+    var harmony = harmonyOf(dist, total);
 
     // 張力（跨構面矛盾 = 最有訊息量的描述）
     var tensions = [];
@@ -163,9 +214,15 @@
     function pct(x) { return Math.round(x * 100) + '%'; }
     var parts = [];
 
-    // 1) 溫度 / 暖冷對比
-    if (desc.harmony === 'warm-cool' || desc.temperature.bothWarmCool) parts.push(t('portrait.c.warmCool'));
+    // 「跨色環」的和諧方案（互補/分裂互補/三角/四角）本身即含暖冷對比 → 略去重複的暖冷 clause
+    var spanning = ['complementary', 'split-complementary', 'triadic', 'tetradic'].indexOf(desc.harmony) >= 0;
+    // 1) 溫度：暖冷對比僅在「非跨色環方案」時說；偏暖/偏冷的傾向照常說
+    if (desc.temperature.bothWarmCool) { if (!spanning) parts.push(t('portrait.c.warmCool')); }
     else parts.push(t('portrait.c.temp', { v: t('portrait.temp.' + desc.temperature.verdict) }));
+
+    // 1.3) 和諧配色（只在明確方案時發話，varied/neutral 略）
+    if (desc.harmony && desc.harmony !== 'varied' && desc.harmony !== 'neutral')
+      parts.push(t('portrait.c.harmony', { h: t('portrait.harmony.' + desc.harmony) }));
 
     // 1.5) 相對圖庫（前/後 25% 才有）
     if (desc.relative) parts.push(t('portrait.c.relative', { rel: t('portrait.rel.' + desc.relative.tag) }));
