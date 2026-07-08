@@ -106,6 +106,7 @@ I18n.register('zh-Hant', {
   'lightbox.unpin': '取消釘選',
   'lightbox.copyHint': '點擊複製色碼',
   'lightbox.close': '關閉',
+  'lightbox.fit': '縮放到符合視窗',
   'lightbox.picker': '取色器',
   'lightbox.pickIdle': '滑過圖片取色',
 

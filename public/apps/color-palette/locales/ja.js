@@ -106,6 +106,7 @@ I18n.register('ja', {
   'lightbox.unpin': 'ピン解除',
   'lightbox.copyHint': 'クリックで色コードをコピー',
   'lightbox.close': '閉じる',
+  'lightbox.fit': 'ウィンドウに合わせる',
   'lightbox.picker': 'スポイト',
   'lightbox.pickIdle': '画像にカーソルで色取得',
 

@@ -462,7 +462,7 @@ body.density-compact .pcard-hint { display: none; }
 .lightbox-pick-unpin:hover { background: rgba(255, 255, 255, .3); color: #fff; }
 .lightbox-pick.pinned .lightbox-pick-unpin { display: inline-flex; align-items: center; justify-content: center; }
 .lightbox-hint { font-size: .78rem; opacity: .7; margin-left: auto; }
-.lightbox-close { pointer-events: auto; flex: 0 0 auto; }
+.lightbox-close, .lightbox-fit { pointer-events: auto; flex: 0 0 auto; }
 @media (max-width: 720px) { .lightbox-hint { display: none; } }
 
 /* 取色放大鏡（跟隨游標；放大像素 + 十字準星 + hex） */

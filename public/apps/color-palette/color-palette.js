@@ -987,6 +987,8 @@
       applyLbView();
     });
 
+    // 縮放到符合視窗：重設為 identity view（fitLbFrame 已把 frame 設成 contain 尺寸，故 zoom 1 ＝ fit）
+    document.getElementById('lightbox-fit').addEventListener('click', function () { fitLbFrame(); lbView = Lib.identityView(); applyLbView(); });
     document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
     // 視窗尺寸變動時，若燈箱開著就重新 fit（frame 依 stage 重算；遮罩/圖為 100% 隨之更新）
     window.addEventListener('resize', function () { if (lbIsOpen()) fitLbFrame(); });

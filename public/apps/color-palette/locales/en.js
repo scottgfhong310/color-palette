@@ -106,6 +106,7 @@ I18n.register('en', {
   'lightbox.unpin': 'Unpin colour',
   'lightbox.copyHint': 'Click to copy hex',
   'lightbox.close': 'Close',
+  'lightbox.fit': 'Fit to window',
   'lightbox.picker': 'Color picker',
   'lightbox.pickIdle': 'Hover the image to pick',
 
