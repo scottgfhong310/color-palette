@@ -12,6 +12,9 @@ Thumbs.db
 # 日誌
 *.log
 
+# 環境變數（含 ANTHROPIC_API_KEY 等機密；永不進版控。範本見 .env.example）
+.env
+
 # 上傳的使用者檔（保留資料夾結構，不追蹤內容；registry 亦不進版控）
 /public/upload/color-palette/*
 !/public/upload/color-palette/.gitkeep

@@ -430,6 +430,8 @@
   // ---- 明細 Modal --------------------------------------------------------
   // 明細：三種萃取視圖（色族 median / 主色 frequency / 全收＝不濾近白黑）
   var detailData = null, detailView = 'family', detailColors = [];
+  var llmEnabled = false;                       // 後端是否設定了 ANTHROPIC_API_KEY（GET /config）→ 決定是否顯示潤稿鈕
+  var detailDesc = null, detailPortraitText = '';  // renderPortrait 存下的結構化描述與決定論句（供 LLM 潤稿重用）
   function detailOptsFor(view) {
     if (view === 'family') return { method: 'median', count: 12 };
     if (view === 'all') return { method: 'frequency', count: 12, skipNearWhite: false, skipNearBlack: false };
@@ -499,7 +501,9 @@
   // 色彩肖像：由五構面即時算一句描述填入 #detail-portrait（需 detailData；純邏輯在 ColorPortraitLib）
   function renderPortrait() {
     var $p = $('#detail-portrait'), $c = $('#detail-card');
-    if (!detailData || !window.ColorPortraitLib) { $p.text(''); $c.empty(); return; }
+    detailDesc = null; detailPortraitText = '';
+    $p.removeClass('is-polished');
+    if (!detailData || !window.ColorPortraitLib) { $p.text(''); $c.empty(); updatePolishBtn(); return; }
     try {
       var opts = portraitOpts(detailName);
       var desc = ColorPortraitLib.describe({
@@ -507,9 +511,47 @@
         distribution: Lib.distributionByDeltaE(detailData, { radius: 5, maxColors: 24 }),
         accent: Lib.accentColors(detailData, { radius: 5, maxColors: 24 })
       }, opts);
-      $p.text(ColorPortraitLib.phrase(desc, I18n.t, opts));
+      var text = ColorPortraitLib.phrase(desc, I18n.t, opts);
+      detailDesc = desc; detailPortraitText = text;
+      $p.text(text);
       $c.html(ColorPortraitLib.card ? ColorPortraitLib.card(desc, I18n.t, opts) : '');
     } catch (e) { $p.text(''); $c.empty(); }
+    updatePolishBtn();
+  }
+  // 潤稿鈕：僅在後端可用（llmEnabled）且已有一句肖像時顯示
+  function updatePolishBtn() {
+    $('#detail-polish').prop('hidden', !(llmEnabled && detailPortraitText));
+  }
+  // 給 LLM 的 grounding 事實（護欄，非內容來源）：語意 token + 已在地化的焦點色名
+  function portraitFacts(desc, opts) {
+    if (!desc) return null;
+    var f = {};
+    f.temperature = desc.temperature.bothWarmCool ? 'warm-cool' : String(desc.temperature.verdict || '').split('-')[0];
+    if (desc.archetype) f.archetype = desc.archetype;
+    if (desc.harmony && desc.harmony !== 'varied' && desc.harmony !== 'neutral') f.harmony = desc.harmony;
+    if (desc.key) f.key = desc.key;
+    if (Array.isArray(desc.families))
+      f.families = desc.families.filter(function (x) { return x.key !== 'neutral'; }).slice(0, 4).map(function (x) { return x.key; });
+    if (desc.focal) {
+      var fc = opts && typeof opts.fcName === 'function' ? opts.fcName(desc.focal.hex) : null;
+      f.focal = (fc && fc.name) ? (fc.name + ' (FC' + fc.code + ')') : desc.focal.family;
+    }
+    return f;
+  }
+  // 選配 LLM 潤稿：把決定論句 + 事實丟給後端改寫；成功則以潤稿版取代 UI 顯示（不落地、不進 .md/報告）
+  function doPolish() {
+    if (!llmEnabled || !detailDesc || !detailPortraitText) return;
+    var name = detailName;                                   // 期間可能換圖 → 回來時比對
+    var $p = $('#detail-portrait'), $b = $('#detail-polish');
+    var facts = portraitFacts(detailDesc, portraitOpts(name));
+    $b.addClass('busy').prop('disabled', true);
+    Lib.polishPortrait({ sentence: detailPortraitText, locale: I18n.lang, facts: facts })
+      .then(function (d) {
+        $b.removeClass('busy').prop('disabled', false);
+        if (detailName !== name) return;                     // 已換圖，丟棄本次結果
+        if (d && d.ok && d.text) { $p.text(d.text).addClass('is-polished'); }
+        else { toast(d && d.error === 'llm-not-configured' ? 'portrait.polish.unconfigured' : 'portrait.polish.fail', 'red'); }
+      });
   }
   function openDetail(f) {
     detailName = f.name;
@@ -971,6 +1013,7 @@
     $('#detail-copyall').on('click', copyAllDetail);
     $('#detail-md').on('click', saveDetailMd);
     $('#detail-report').on('click', saveReportMd);
+    $('#detail-polish').on('click', doPolish);   // 選配 LLM 潤稿
 
     // 萃取法切換（median ↔ frequency）
     $('#setting-method').on('click', function () {
@@ -1122,5 +1165,11 @@
 
     bind();
     refresh();
+
+    // 探詢後端是否設定了 LLM 潤稿（ANTHROPIC_API_KEY）；有才顯示明細裡的潤稿鈕
+    Lib.getConfig().then(function (c) {
+      llmEnabled = !!(c && c.ok && c.llm);
+      if (llmEnabled) updatePolishBtn();
+    });
   });
 })();

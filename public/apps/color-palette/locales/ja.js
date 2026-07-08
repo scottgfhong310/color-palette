@@ -85,6 +85,10 @@ I18n.register('ja', {
   'portrait.harmony.complementary': '補色', 'portrait.harmony.split-complementary': 'スプリットコンプリメンタリー',
   'portrait.harmony.triadic': 'トライアド', 'portrait.harmony.tetradic': 'テトラード',
   'portrait.sep': '、', 'portrait.end': '。',
+  // 任意の LLM 推敲（バックエンドに ANTHROPIC_API_KEY がある場合のみ。推敲は表示のみ——確定文が保存/レポートの正）
+  'portrait.polish.title': '✨ AI でこの説明を推敲',
+  'portrait.polish.fail': '推敲に失敗しました。元の文のままです',
+  'portrait.polish.unconfigured': 'LLM 未設定（.env の ANTHROPIC_API_KEY を確認）',
   'toast.mdSaved': '.md を保存：{n}、markdown-library を開きます',
   'toast.mdFail': '.md の保存に失敗：{m}',
   'detail.png': 'PNG カラーカードをダウンロード',

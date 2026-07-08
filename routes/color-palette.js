@@ -225,6 +225,94 @@ router.post('/delete', async (req, res) => {
   }
 });
 
+// ---- 選配 LLM 潤稿（opt-in；純核心仍決定論、零相依）------------------------
+// color-portrait-lib 的 phrase() 永遠是決定論、落地/報告用的來源；此端點只是「文采潤飾」——
+// 把已在地化的那一句 + 精簡事實丟給 Claude 改寫得更漂亮。API key 走 .env（ANTHROPIC_API_KEY），
+// 未設定時整個功能靜默停用（前端據 GET /config 決定是否顯示按鈕）。零 npm 相依：以 Node 內建 fetch 直呼 API。
+const LLM_LOCALES = new Set(['zh-Hant', 'en', 'ja']);
+const LLM_LANG_NAME = { 'zh-Hant': 'Traditional Chinese (繁體中文)', en: 'English', ja: 'Japanese (日本語)' };
+const LLM_MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-8';   // 預設 Opus 4.8；可用 .env 覆寫（如 claude-haiku-4-5 省成本）
+
+function llmEnabled() { return Boolean(process.env.ANTHROPIC_API_KEY); }
+
+// 事實清單消毒：只留白名單欄位、字串裁長、陣列裁量——當作模型的 grounding 護欄（防漂移），不當內容來源。
+function slimFacts(f) {
+  if (!f || typeof f !== 'object') return null;
+  const str = (v, n) => (typeof v === 'string' ? v.slice(0, n || 40) : undefined);
+  const out = {};
+  if (str(f.temperature)) out.temperature = str(f.temperature);
+  if (str(f.archetype)) out.archetype = str(f.archetype);
+  if (str(f.harmony)) out.harmony = str(f.harmony);
+  if (str(f.key)) out.key = str(f.key);
+  if (str(f.focal, 60)) out.focal = str(f.focal, 60);
+  if (Array.isArray(f.families)) out.families = f.families.filter(x => typeof x === 'string').slice(0, 5).map(x => x.slice(0, 30));
+  return Object.keys(out).length ? out : null;
+}
+
+// GET /api/color-palette/config — 前端啟動時探詢能力（目前只有：LLM 潤稿是否可用）
+router.get('/config', (req, res) => {
+  res.json({ ok: true, llm: llmEnabled() });
+});
+
+// POST /api/color-palette/polish — 把一句色彩肖像描述用 LLM 改寫得更漂亮
+// body: { sentence, locale, facts? } → { ok, text } 或 { ok:false, error }
+router.post('/polish', async (req, res) => {
+  const b = req.body || {};
+  const sentence = typeof b.sentence === 'string' ? b.sentence.trim() : '';
+  const locale = LLM_LOCALES.has(b.locale) ? b.locale : 'zh-Hant';
+  if (!sentence || sentence.length > 600) return res.status(400).json({ ok: false, error: '需要一句描述' });
+  if (!llmEnabled()) return res.json({ ok: false, error: 'llm-not-configured' });
+  const facts = slimFacts(b.facts);
+
+  const system =
+    "You rewrite one-sentence descriptions of an image's COLOUR composition to be more evocative and fluent, " +
+    'while staying strictly faithful to the given facts.\n' +
+    'Rules:\n' +
+    '- Describe COLOUR only. Never invent subject matter, objects, scenes, or what the image depicts ' +
+    '(no "lips", "sky", "sunset", "portrait", people, places, etc.). You are told colours, not content.\n' +
+    '- Add no fact not present in the draft or the facts list — no new colours, no numbers you were not given.\n' +
+    '- Output exactly ONE sentence, in ' + LLM_LANG_NAME[locale] + ', and nothing else ' +
+    '(no preamble, no surrounding quotes, no markdown).\n' +
+    '- Keep any Faber-Castell colour name and code exactly as written in the draft.';
+
+  let user = 'Draft (already in ' + LLM_LANG_NAME[locale] + '; this is the source of truth):\n' + sentence;
+  if (facts) user += '\n\nSupporting facts (guardrails only; do not translate these labels into the sentence):\n' + JSON.stringify(facts);
+  user += '\n\nRewrite the draft as one more beautiful sentence.';
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({ model: LLM_MODEL, max_tokens: 256, system, messages: [{ role: 'user', content: user }] })
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data) {
+      const msg = (data && data.error && data.error.message) || ('HTTP ' + resp.status);
+      console.error('[color-palette] POST /polish upstream error:', msg);
+      return res.status(502).json({ ok: false, error: 'llm-upstream' });
+    }
+    if (data.stop_reason === 'refusal') return res.json({ ok: false, error: 'llm-refusal' });
+    const block = Array.isArray(data.content) ? data.content.find(c => c && c.type === 'text') : null;
+    const text = block && typeof block.text === 'string' ? block.text.trim() : '';
+    if (!text) return res.json({ ok: false, error: 'llm-empty' });
+    console.log('[color-palette] POST /polish →', LLM_MODEL, '(' + locale + ')');
+    return res.json({ ok: true, text: text.slice(0, 800), model: LLM_MODEL });
+  } catch (err) {
+    const aborted = err && err.name === 'AbortError';
+    console.error('[color-palette] POST /polish failed:', aborted ? 'timeout' : err.message);
+    return res.status(aborted ? 504 : 500).json({ ok: false, error: aborted ? 'llm-timeout' : 'llm-error' });
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
 // POST /api/color-palette/clear — 清空資料夾下所有可見檔案，並清空 registry
 router.post('/clear', async (req, res) => {
   try {

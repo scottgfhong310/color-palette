@@ -182,8 +182,17 @@ gallery 的 **篩選列**（側鍵 `filter_list`）依現有標籤動態生成 c
 - **視覺肖像卡** ✅ **已實作**：`ColorPortraitLib.card(desc, t, {fcName})` 把 Description 畫成一張 SVG「色彩指紋卡」——
   **和諧環**（色相環＋聚極點＋配色幾何連線＋方案名）｜**溫度條**（暖/中/冷）｜**明度×彩度座標點**（點＝主色）｜**焦點色塊＋FC 名**。
   純字串、不碰 DOM；顏色用實色（列印＝前景必印）、文字用 currentColor（主題自適應）。明細 `#detail-card` 與完整報告右欄各生成一張。**怎麼讀這張卡見 [PORTRAIT-CARD.md](PORTRAIT-CARD.md)。**
-- **選配 LLM 潤稿**：把結構化 `Description` 丟給模型寫得更漂亮——**這裡才讓主觀與文采進場**，
-  且是 opt-in，純核心仍決定論、零相依。
+- **選配 LLM 潤稿** ✅ **已實作**：把決定論那一句（＋精簡事實護欄）丟給 Claude 改寫得更漂亮——
+  **這裡才讓主觀與文采進場**，且嚴格 opt-in、純核心仍決定論、零相依：
+  - **邊界不變**：`phrase()` 產生的決定論句仍是**落地 alias / `.md` / 完整報告 / 標籤 / 肖像卡的唯一來源**；
+    潤稿只改**明細 Modal 裡的那一句顯示**（transient、不落地、不進報告）。純核心一行不動。
+  - **零 npm 相依**：後端以 Node 內建 `fetch` 直呼 Anthropic Messages API（不引 SDK，維持「薄後端」canon）；
+    金鑰走 `.env` 的 `ANTHROPIC_API_KEY`（app.js 內建極簡 `.env` 載入器；模型可 `ANTHROPIC_MODEL` 覆寫，預設 `claude-opus-4-8`）。
+  - **靜默停用**：未設金鑰時 `GET /config` 回 `llm:false`，明細裡的 ✨ 潤稿鈕根本不出現——功能不存在，體驗不退化。
+  - **只描述顏色不描述內容的紀律延伸到 prompt**：system prompt 明令模型「只講顏色、不得臆造主體/物件/場景」，
+    事實清單只當 grounding 護欄（防漂移），焦點色的 FC 名/色號原樣保留。
+  - 端點：`GET /api/color-palette/config`（能力探詢）、`POST /api/color-palette/polish`（`{sentence, locale, facts}` → `{ok, text}`）；
+    逾時 20s、輸入裁量、`stop_reason:refusal` 與上游錯誤都回結構化 `{ok:false, error}`。
 
 ### 6.4 關係與時間 ✅ **已實作（MVP）**
 色彩肖像從描述「一張圖」擴到描述「**一批圖**」：`ColorPortraitLib.collectionPortrait(items)`

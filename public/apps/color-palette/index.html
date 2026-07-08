@@ -114,8 +114,15 @@
           <div id="detail-sub" class="detail-sub"></div>
         </div>
       </div>
-      <!-- 色彩肖像：五構面 → 一句描述（像素載入後由 ColorPortraitLib 生成） -->
-      <div id="detail-portrait" class="detail-portrait"></div>
+      <!-- 色彩肖像：五構面 → 一句描述（像素載入後由 ColorPortraitLib 生成）
+           ＋選配 LLM 潤稿按鈕（僅在後端設定了 ANTHROPIC_API_KEY 時顯示；決定論句仍是落地/報告來源） -->
+      <div class="detail-portrait-row">
+        <div id="detail-portrait" class="detail-portrait"></div>
+        <button type="button" id="detail-polish" class="detail-polish" hidden
+          data-i18n-title="portrait.polish.title" title="用 AI 潤飾這句描述">
+          <i class="material-icons">auto_awesome</i>
+        </button>
+      </div>
       <!-- 視覺肖像卡：和諧環＋溫度條＋明度×彩度座標＋焦點色塊（SVG 由 ColorPortraitLib.card 生成） -->
       <div id="detail-card" class="detail-card"></div>
       <!-- 工具列：萃取視圖分頁（色族/主色/全收/分布/重點色）＋ 複製全部 / 存 .md / 完整報告 -->

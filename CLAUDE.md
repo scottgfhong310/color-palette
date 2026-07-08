@@ -10,7 +10,8 @@
 ```
 app.js                              # Express 入口：port 3000；/ → 302 /apps/color-palette/
 routes/upload.js                    # POST /api/upload?folder=color-palette（共用最小版）
-routes/color-palette.js             # GET /files、POST /alias、POST /clear（+ registry 讀寫）
+routes/color-palette.js             # GET /files、POST /alias、POST /clear（+ registry 讀寫）；GET /config、POST /polish（選配 LLM 潤稿）
+.env.example                        # 環境變數範本（ANTHROPIC_API_KEY / ANTHROPIC_MODEL 皆選配；.env 已 gitignore）
 public/apps/color-palette/          # 前端（服務於 /apps/color-palette/）
 ├─ index.html · color-palette.css · color-palette.js · color-palette-lib.js
 ├─ color-portrait-lib.js             # 五構面 → 一句色彩描述（純函式、零相依；家族共用候選）
@@ -54,6 +55,11 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 - **重點色 accent** `accentColors`（純函式，DESIGN §10）：**彩度加權**的顯著性萃取——每像素權重 `(Lab 彩度−chromaFloor)^gamma`（預設 `gamma=2`、`chromaFloor=14`），近中性像素權重 0。小面積但鮮豔的色（紅唇、紅點）會浮上來，`ratio`＝顯著度佔比（非面積）。與面積視圖互補：面積視圖答「用了什麼、各多少」，重點色答「哪些最搶眼」。
 - **色彩肖像** `color-portrait-lib.js`（`window.ColorPortraitLib`，純函式、零相依）：吃五構面色資料 → `describe()` 回**結構化描述**（溫度暖冷／面積主導家族／明度 key／彩度／**配色原型**〔粉彩·大地·寶石·霓虹·高對比，HSV 濃度×明度×冷暖×對比，取代色調 clause；理論與導出見 [ARCHETYPE.md](ARCHETYPE.md)〕／焦點色／**和諧配色**〔色相聚極判單色·類比·互補·分裂互補·三角·四角，`harmonyOf()`；理論與導出見 [HARMONY.md](HARMONY.md)〕／**跨構面張力** tensions——如「看似中性卻某色以面積悄悄主導」「小而鮮的焦點色」），`phrase(desc, I18n.t)` 拼成一句；措辭全在 `portrait.*` locale（lib 不含文字）。**只描述顏色、不描述內容**（知道「一抹小而鮮的紅」，不知道是嘴唇）。明細 `#detail-portrait` 與完整報告頂端各即時生成一句。**視覺肖像卡** `ColorPortraitLib.card(desc, t, {fcName})`＝把 Description 畫成 SVG「色彩指紋卡」（和諧環＋溫度條＋明度×彩度座標＋焦點色塊；純字串、實色列印必印、文字 currentColor 隨主題），明細 `#detail-card` 與報告右欄各一張；導讀（是什麼／與色型的關係／怎麼讀）見 [PORTRAIT-CARD.md](PORTRAIT-CARD.md)。**可查詢 metadata**：`ColorPortraitLib.tags(desc)`＝正規化標籤 `facet:value`（溫度/原型/和諧/明度）；gallery 側鍵 `filter_list` 開篩選列，chip 依現有標籤動態生成、點擊即時過濾（facet 內 OR、跨 facet AND）。**標籤在分析時由 live 分布算準、隨 alias 落地 `.registry.json`**（後端 `validateTags`＋`alias.tags`；`saveAlias(name,palette,tags)`）；舊資料後備由 alias 近似算，重新分析升級。**圖庫肖像（關係與時間）** `collectionPortrait/collectionPhrase`＝描述「一批圖」：整體冷暖／最常見原型·和諧（≥30%）／依 `mtime` 的暖冷·彩度趨勢（近期偏暖/冷/鮮/濁）；顯示於 gallery 頂端 `#collection-portrait`，**尊重篩選**（描述可見子集），原型/和諧與篩選同源用落地 tags。理論（尤其「時間」＝舊半/新半兩相比的趨勢方向）與資料來源見 [COLLECTION.md](COLLECTION.md)。
   **v2 加值（依賴注入、lib 仍純）**：`phrase(desc, t, {fcName})` 用 hook 把焦點色命名為實體 Faber-Castell 色，**依語言在地化**（zh「印度紅 ≈FC192」／ja「インディアンレッド」／en「India red」，色號不變；對照表 `data/fc-names-i18n.js`，控制器 `fcLocalName()`）；`describe(facets, {corpus, self})` 吃「圖庫其他圖的 alias 色」當語料，把本圖暖度/彩度放進分布，**只在約前/後 8%（`REL_MIN=0.42`，實測約 1/3 圖）才發相對句**「在你的圖庫裡算偏暖/冷/鮮/沉靜的一張」。控制器 `portraitOpts()` 組語料＋FC hook。想法到設計（五色型→v1→v2→未來）見 [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md)。**家族共用候選**（比照 `faber-castell-color-lib`，驗證後可抽出給 `thangka-trace` 等）。
+- **選配 LLM 潤稿**（opt-in，純核心不變）：`color-portrait-lib` 的決定論 `phrase()` 仍是**落地 alias / `.md` / 報告 / 標籤 / 肖像卡的唯一來源**；
+  潤稿只改**明細 Modal 那一句的 UI 顯示**（transient、不落地）。後端 `POST /polish`＝把決定論句＋精簡事實護欄丟給 Claude 改寫，
+  **以 Node 內建 `fetch` 直呼 Anthropic Messages API（不引 SDK，維持薄後端零 npm 相依）**；金鑰走 `.env` 的 `ANTHROPIC_API_KEY`
+  （app.js 內建極簡 `.env` 載入器；`ANTHROPIC_MODEL` 可覆寫，預設 `claude-opus-4-8`）。未設金鑰＝`GET /config` 回 `llm:false`、
+  明細不出現 ✨ 潤稿鈕（靜默停用）。system prompt 明令「只描述顏色、不臆造內容」，事實清單僅作 grounding 護欄；逾時 20s、錯誤回 `{ok:false,error}`。想法到設計見 [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md) §6.3。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 
 ## 複製件登記（共用件改版時回來同步）

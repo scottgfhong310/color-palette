@@ -42,6 +42,8 @@
   var DELETE_API = '/api/color-palette/delete';
   var SAVEMD_API = '/api/color-palette/save-md';
   var CLEAR_API = '/api/color-palette/clear';
+  var CONFIG_API = '/api/color-palette/config';
+  var POLISH_API = '/api/color-palette/polish';
   var STATIC_BASE = '/upload/' + FOLDER + '/';
 
   var MAX_COLORS = 12;
@@ -625,6 +627,27 @@
       });
   }
 
+  // 探詢後端能力（目前只有：色彩肖像的 LLM 潤稿是否可用）；失敗一律回 { ok:false }，呼叫端據此決定顯示與否
+  function getConfig() {
+    return fetch(bust(CONFIG_API), { cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (d) { return d || { ok: false }; })
+      .catch(function () { return { ok: false }; });
+  }
+
+  // 選配 LLM 潤稿：把決定論句子 + 精簡事實丟給後端改寫；回 { ok, text } 或 { ok:false, error }
+  //   payload = { sentence, locale, facts? }。純 UI 潤飾，不落地、不進 .md/報告——決定論句仍是唯一來源。
+  function polishPortrait(payload) {
+    return fetch(POLISH_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (d) { return d || { ok: false, error: 'bad-response' }; })
+      .catch(function () { return { ok: false, error: 'network' }; });
+  }
+
   window.ColorPaletteLib = {
     FOLDER: FOLDER,
     MAX_COLORS: MAX_COLORS,
@@ -657,6 +680,8 @@
     saveAlias: saveAlias,
     saveMd: saveMd,
     deleteFile: deleteFile,
-    clearFolder: clearFolder
+    clearFolder: clearFolder,
+    getConfig: getConfig,
+    polishPortrait: polishPortrait
   };
 })(window);

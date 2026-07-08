@@ -85,6 +85,10 @@ I18n.register('zh-Hant', {
   'portrait.harmony.complementary': '互補', 'portrait.harmony.split-complementary': '分裂互補',
   'portrait.harmony.triadic': '三角', 'portrait.harmony.tetradic': '四角',
   'portrait.sep': '、', 'portrait.end': '。',
+  // 選配 LLM 潤稿（僅在後端設定 ANTHROPIC_API_KEY 時可用；潤稿只潤 UI 顯示，落地/報告仍用決定論句）
+  'portrait.polish.title': '✨ 用 AI 潤飾這句描述',
+  'portrait.polish.fail': '潤稿失敗，維持原句',
+  'portrait.polish.unconfigured': '尚未設定 LLM（見 .env 的 ANTHROPIC_API_KEY）',
   'toast.mdSaved': '已存 .md：{n}，開啟 markdown-library',
   'toast.mdFail': '存 .md 失敗：{m}',
   'detail.png': '下載 PNG 色卡',

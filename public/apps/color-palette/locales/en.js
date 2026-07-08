@@ -85,6 +85,10 @@ I18n.register('en', {
   'portrait.harmony.complementary': 'complementary', 'portrait.harmony.split-complementary': 'split-complementary',
   'portrait.harmony.triadic': 'triadic', 'portrait.harmony.tetradic': 'tetradic',
   'portrait.sep': ', ', 'portrait.end': '.',
+  // Optional LLM polish (only when the backend has ANTHROPIC_API_KEY; polish is display-only — landed alias / report keep the deterministic sentence)
+  'portrait.polish.title': '✨ Refine this description with AI',
+  'portrait.polish.fail': 'Polish failed; keeping the original',
+  'portrait.polish.unconfigured': 'LLM not configured (see ANTHROPIC_API_KEY in .env)',
   'toast.mdSaved': 'Saved {n} — opening markdown-library',
   'toast.mdFail': 'Save .md failed: {m}',
   'detail.png': 'Download PNG palette',

@@ -312,6 +312,21 @@ body.density-compact .pcard-hint { display: none; }
   margin: 0 0 12px; padding-left: 10px; border-left: 2px solid var(--accent);
 }
 .detail-portrait:empty { display: none; }
+/* 肖像被 LLM 潤飾後：以更亮的 accent 邊 + 微加粗標示「這句是潤稿版」 */
+.detail-portrait.is-polished { border-left-color: var(--accent); border-left-width: 3px; font-weight: 500; }
+/* 肖像句 + 潤稿鈕同列：句子占滿、鈕靠上右 */
+.detail-portrait-row { display: flex; align-items: flex-start; gap: 8px; margin: 0 0 12px; }
+.detail-portrait-row .detail-portrait { flex: 1 1 auto; margin-bottom: 0; }
+.detail-portrait-row:has(.detail-portrait:empty) { display: none; }   /* 尚無肖像句 → 整列（含鈕）隱藏 */
+.detail-polish {
+  flex: 0 0 auto; margin-top: 1px; padding: 4px; border: none; border-radius: 6px;
+  background: transparent; color: var(--muted); cursor: pointer; line-height: 0;
+}
+.detail-polish:hover { background: var(--surface-2); color: var(--accent); }
+.detail-polish[disabled] { opacity: .5; cursor: default; }
+.detail-polish.busy { animation: dp-spin .8s linear infinite; }
+.detail-polish i.material-icons { font-size: 19px; }
+@keyframes dp-spin { to { transform: rotate(360deg); } }
 /* 視覺肖像卡：SVG 指紋卡；文字用 currentColor（隨主題），框用半透明灰 */
 .detail-card { margin: 0 0 14px; color: var(--muted); }
 .detail-card:empty { display: none; }
