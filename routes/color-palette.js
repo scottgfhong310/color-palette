@@ -118,6 +118,19 @@ function validatePalette(p) {
   return alias;
 }
 
+// 驗證色彩肖像標籤（可查詢 metadata）：字串陣列、每個為 `facet:value`（小寫＋連字號）、去重、有上限。
+const TAG_RE = /^[a-z]+:[a-z-]+$/;
+function validateTags(t) {
+  if (!Array.isArray(t)) return null;
+  const out = [];
+  for (const s of t) {
+    if (typeof s !== 'string' || s.length > 40 || !TAG_RE.test(s)) continue;
+    if (out.indexOf(s) < 0) out.push(s);
+    if (out.length >= 16) break;
+  }
+  return out.length ? out : null;
+}
+
 // ---- API ------------------------------------------------------------------
 
 // GET /api/color-palette/files — 列出圖檔（併入各檔 alias）；依修改時間新→舊
@@ -157,6 +170,8 @@ router.post('/alias', async (req, res) => {
   if (!name) return res.status(400).json({ ok: false, error: '不允許的檔名' });
   const alias = validatePalette(req.body && req.body.palette);
   if (!alias) return res.status(400).json({ ok: false, error: '色票格式不正確' });
+  const tags = validateTags(req.body && req.body.tags);   // 色彩肖像標籤（選用；落地供跨載入檢索）
+  if (tags) alias.tags = tags;
   try {
     // 檔案必須存在於資料夾內才落地（避免替不存在的檔寫 alias）
     await fs.access(path.join(UPLOAD_DIR, name));

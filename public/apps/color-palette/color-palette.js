@@ -120,7 +120,18 @@
         catch (e) { reject(e); return; }
         var palette = Lib.buildPalette(data, { method: useMethod || method });
         if (!palette.colors.length) { reject(new Error('empty')); return; }
-        resolve(palette);
+        // 順便由 live 像素算「準確」色彩肖像標籤（可查詢 metadata），與 palette 一起落地
+        var tags = [];
+        if (window.ColorPortraitLib) {
+          try {
+            tags = ColorPortraitLib.tags(ColorPortraitLib.describe({
+              dominant: Lib.extractPalette(data, { method: 'frequency', count: 12 }),
+              distribution: Lib.distributionByDeltaE(data, { radius: 5, maxColors: 24 }),
+              accent: Lib.accentColors(data, { radius: 5, maxColors: 24 })
+            }));
+          } catch (e) { tags = []; }
+        }
+        resolve({ palette: palette, tags: tags });
       };
       img.onerror = function () { reject(new Error('圖片載入失敗')); };
       img.src = url;
@@ -134,8 +145,8 @@
 
   // 分析單一檔並落地；回 alias（失敗 throw）
   function analyzeAndSave(f) {
-    return analyzeImage(versionedUrl(f), method).then(function (palette) {
-      return Lib.saveAlias(f.name, palette).then(function (d) { return d.alias; });
+    return analyzeImage(versionedUrl(f), method).then(function (res) {
+      return Lib.saveAlias(f.name, res.palette, res.tags).then(function (d) { return d.alias; });
     });
   }
 
@@ -187,9 +198,11 @@
     { facet: 'harmony', values: ['monochrome', 'analogous', 'complementary', 'split-complementary', 'triadic', 'tetradic'], label: function (v) { return I18n.t('portrait.harmony.' + v); } },
     { facet: 'key', values: ['high', 'mid', 'low'], label: function (v) { return I18n.t('portrait.key.' + v); } }
   ];
-  // 為每張圖算色彩肖像標籤（由 alias 色近似，零後端負擔）；供篩選比對
+  // 為每張圖取色彩肖像標籤（供篩選比對）：優先用分析時落地的「準確」標籤（f.alias.tags）；
+  //   舊資料尚未落地 tags 時，後備由 alias 色「近似」算（zero-後端負擔）。
   function computeTags() {
     files.forEach(function (f) {
+      if (f.alias && Array.isArray(f.alias.tags) && f.alias.tags.length) { f._tags = f.alias.tags; return; }
       f._tags = (f.alias && f.alias.colors && f.alias.colors.length && window.ColorPortraitLib)
         ? ColorPortraitLib.tags(ColorPortraitLib.describe({ distribution: f.alias.colors, dominant: f.alias.colors, accent: f.alias.colors }))
         : [];

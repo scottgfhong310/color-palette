@@ -564,8 +564,8 @@
       .then(function (d) { return (d && d.files) || []; });
   }
 
-  // 落地單一檔案的色票 alias（palette 由 buildPalette 產生）
-  function saveAlias(name, palette) {
+  // 落地單一檔案的色票 alias（palette 由 buildPalette 產生）；tags＝色彩肖像標籤（選用，一併落地）
+  function saveAlias(name, palette, tags) {
     var body = {
       name: name,
       palette: {
@@ -575,6 +575,7 @@
         hue: palette.hue
       }
     };
+    if (Array.isArray(tags) && tags.length) body.tags = tags;
     return fetch(ALIAS_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
