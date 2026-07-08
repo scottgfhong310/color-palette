@@ -222,7 +222,7 @@
   // 篩選列：chip 只列 gallery 裡真的有的值（像色軌）；顯示與否跟著 #setting-filter
   function buildFilterBar() {
     var $bar = $('#filter-bar');
-    if (!$('#setting-filter').hasClass('active')) { $bar.prop('hidden', true).empty(); return; }
+    if (!$('#setting-filter').hasClass('active')) { $('body').removeClass('filter-open'); $bar.prop('hidden', true).empty(); return; }
     $bar.prop('hidden', false).empty();
     var present = {};
     files.forEach(function (f) { (f._tags || []).forEach(function (t) { present[t] = true; }); });
@@ -242,6 +242,9 @@
         .append($('<span class="filter-count">').text(I18n.t('filter.count', { n: files.filter(matchesFilter).length })))
         .append($('<button type="button" class="filter-clear">').text(I18n.t('filter.clear'))));
     }
+    // 固定在頂端：量列高，讓色系標頭 sticky 讓位（top 8 + 列高 + 小間距）
+    $('body').addClass('filter-open');
+    document.documentElement.style.setProperty('--filter-h', (8 + $bar[0].offsetHeight + 6) + 'px');
   }
 
   function render() {

@@ -80,9 +80,14 @@ body.is-empty #gallery { display: none; }
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
   margin: 0 0 16px; padding: 12px 14px;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px;
+  /* 啟用後固定在頂端，捲動不消失（浮在色系標頭之上）*/
+  position: sticky; top: 8px; z-index: 30;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, .28);
 }
 /* 未啟用（hidden）時整列隱藏——需比 .filter-bar 的 display:flex 更特異，否則空列仍會顯示 */
 .filter-bar[hidden] { display: none; }
+/* 篩選列開啟時，色系標頭的 sticky top 下推到篩選列底下（--filter-h 由 JS 量列高後設）*/
+body.filter-open .hue-header { top: var(--filter-h, 60px); }
 .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .filter-facet { font-size: .74rem; color: var(--muted); margin-right: 2px; }
 .filter-chip {
