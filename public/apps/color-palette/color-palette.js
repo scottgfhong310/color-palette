@@ -731,6 +731,7 @@
   var lbColors = [];                  // 目前圖的色票 [{r,g,b,hex,...}]
   var lbSample = null;                // 離屏取樣：{ data, w, h }（getImageData）
   var lbActiveIdx = -1;               // 目前定位中的色票 index（mask）
+  var lbPinned = null;               // 釘住的取色點 { hex, idx }：hover 是即時預覽（放大鏡），釘住的固定在頂端且可複製
 
   function applyLbView() {
     document.getElementById('lightbox-frame').style.transform =
@@ -744,7 +745,7 @@
     lbView = Lib.identityView();
     clearMask();
     buildLbPalette();
-    hidePick();
+    lbPinned = null; hidePick();
     var img = document.getElementById('lightbox-img');
     lbSample = null;
     var onLoad = function () { if (img.naturalWidth) prepLbSample(img); };
@@ -758,7 +759,7 @@
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('show');
     document.getElementById('lightbox-img').src = '';   // 釋放
-    clearMask(); hidePick(); hideLoupe(); lbSample = null;
+    lbPinned = null; clearMask(); hidePick(); hideLoupe(); lbSample = null;
   }
   function lbIsOpen() { return document.getElementById('lightbox').classList.contains('show'); }
 
@@ -799,16 +800,36 @@
     });
   }
 
-  // 滴管讀值列
-  function showPick(hex) {
-    var $p = $('#lightbox-pick').prop('hidden', false);
+  // 滴管讀值列（pinned＝釘住狀態：accent 環＋可點擊複製＋✕ 取消）
+  function showPick(hex, pinned) {
+    var $p = $('#lightbox-pick').prop('hidden', false).toggleClass('pinned', !!pinned);
+    $p.attr('title', pinned ? I18n.t('lightbox.copyHint') : '');
     $p.find('.lightbox-pick-chip').css('background', hex);
     $p.find('.lightbox-pick-hex').text(hex);
     var $fc = $p.find('.lightbox-pick-fc');
     if (!$fc.length) $fc = $('<span class="lightbox-pick-fc">').appendTo($p);
     $fc.html(fcLineHtml(hex));
   }
-  function hidePick() { $('#lightbox-pick').prop('hidden', true); setHotSwatch(-1); }
+  function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('pinned').attr('title', ''); setHotSwatch(-1); }
+  // 釘住游標所在點的顏色（hover 是即時預覽；釘住的固定在頂端供比對／複製）
+  function pinAt(clientX, clientY) {
+    var s = lbSampleAt(clientX, clientY);
+    if (!s) return;
+    lbPinned = { hex: s.hex, idx: Lib.nearestSwatchIndex(s.r, s.g, s.b, lbColors) };
+    showPick(s.hex, true);
+    setHotSwatch(lbPinned.idx);
+  }
+  function unpin() { lbPinned = null; hidePick(); }
+  // 複製釘住的 hex（大寫；比照 copyAllDetail 的 clipboard 慣例）
+  function copyPinnedHex() {
+    if (!lbPinned) return;
+    var t = lbPinned.hex.toUpperCase();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t)
+        .then(function () { toast('lightbox.copied', 'teal', { hex: t }); })
+        .catch(function () { toast('toast.copyFail', 'red'); });
+    } else { toast('toast.copyFail', 'red'); }
+  }
   function setHotSwatch(idx) {
     $('#lightbox-palette .lb-swatch').removeClass('hot');
     if (idx >= 0) $('#lightbox-palette .lb-swatch[data-idx="' + idx + '"]').addClass('hot');
@@ -831,10 +852,12 @@
   function eyedrop(clientX, clientY) {
     if (!lbColors.length) { hideLoupe(); return; }
     var s = lbSampleAt(clientX, clientY);
-    if (!s) { hidePick(); hideLoupe(); return; }
-    showPick(s.hex);
-    setHotSwatch(Lib.nearestSwatchIndex(s.r, s.g, s.b, lbColors));
-    updateLoupe(s, clientX, clientY);
+    if (!s) { hideLoupe(); if (!lbPinned) hidePick(); return; }
+    if (!lbPinned) {                              // 未釘住：頂端讀值＋側欄高亮跟即時取色走
+      showPick(s.hex, false);
+      setHotSwatch(Lib.nearestSwatchIndex(s.r, s.g, s.b, lbColors));
+    }
+    updateLoupe(s, clientX, clientY);             // 放大鏡永遠顯示游標下的即時色（釘住時＝拿來跟釘住值比對）
   }
 
   // 放大鏡：從取樣 canvas 放大 15px 窗、畫十字準星、hex，跟隨游標（比照 thangka-trace）
@@ -921,19 +944,25 @@
         eyedrop(e.clientX, e.clientY);
       }
     });
-    stage.addEventListener('pointerleave', function () { hidePick(); hideLoupe(); });
+    stage.addEventListener('pointerleave', function () { hideLoupe(); if (!lbPinned) hidePick(); });
     stage.addEventListener('pointerup', function (e) {
       var wasDrag = lbDrag && lbDrag.moved;
       lbDrag = null;
       stage.classList.remove('grabbing');
-      // 未拖曳、且點在舞台空白處（非圖片本身）→ 關閉
-      if (!wasDrag && e.target === stage) closeLightbox();
+      if (wasDrag) return;
+      if (e.target === stage) closeLightbox();               // 點舞台空白處 → 關閉
+      else if (e.target === img) pinAt(e.clientX, e.clientY); // 點圖片 → 釘住該點顏色
     });
 
     // 色票側欄：點色票 → 在圖上定位該色區域（再點同一個 → 取消）
     $('#lightbox-palette').on('click', '.lb-swatch', function () {
       var idx = +$(this).attr('data-idx');
       if (lbActiveIdx === idx) clearMask(); else showMask(idx);
+    });
+    // 釘住的讀值：點 ✕ 取消釘選；點其餘處複製 hex
+    $('#lightbox-pick').on('click', function (e) {
+      if ($(e.target).closest('.lightbox-pick-unpin').length) { unpin(); return; }
+      copyPinnedHex();
     });
 
     // 雙擊：fit ↔ 放大到 4× 於游標處

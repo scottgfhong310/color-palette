@@ -101,7 +101,10 @@ I18n.register('ja', {
   'toast.deleteFail': '削除に失敗：{m}',
   'detail.sub': '{method} · {n} 色 · {size}',
 
-  'lightbox.hint': 'ホイールで拡大 · ドラッグで移動 · カーソルで色取得 · 色票クリックで領域表示 · Escで閉じる',
+  'lightbox.hint': 'ホイールで拡大 · ドラッグで移動 · カーソルで色取得 · 画像クリックでピン · 色票クリックで領域表示 · Escで閉じる',
+  'lightbox.copied': '{hex} をコピーしました',
+  'lightbox.unpin': 'ピン解除',
+  'lightbox.copyHint': 'クリックで色コードをコピー',
   'lightbox.close': '閉じる',
   'lightbox.picker': 'スポイト',
   'lightbox.pickIdle': '画像にカーソルで色取得',
