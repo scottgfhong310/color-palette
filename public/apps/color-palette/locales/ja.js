@@ -65,7 +65,7 @@ I18n.register('ja', {
   'portrait.c.tone': '色調は{chroma}・{key}',
   'portrait.c.focal': '焦点は小さく鮮やかな{family}',
   'portrait.c.hidden': '一見ニュートラルだが実は{family}が約{pct}で静かに主導',
-  'portrait.c.focalNamed': '焦点は小さく鮮やかな {name}（≈FC{code}）',
+  'portrait.c.focalNamed': '焦点は小さく鮮やかな{name}（≈FC{code}）',
   'portrait.c.relative': 'ライブラリの中では{rel}一枚',
   'portrait.rel.warmer': '暖色寄りの', 'portrait.rel.cooler': '寒色寄りの',
   'portrait.rel.more-vivid': '鮮やかな', 'portrait.rel.more-muted': '落ち着いた',

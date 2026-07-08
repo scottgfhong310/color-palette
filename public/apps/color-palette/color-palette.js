@@ -45,6 +45,15 @@
     var rgb = FC.hexToRgb(hex); if (!rgb) return [];
     return FC.nearestFC(rgb, { n: n || 1 });
   }
+  // FC 色名依語言在地化（zh-Hant→zh、ja→ja；en 或缺對照→英文原名）；對照表 data/fc-names-i18n.js
+  function fcLocalName(code, fallback) {
+    var loc = window.FC_NAMES_I18N && FC_NAMES_I18N[code];
+    if (loc) {
+      if (I18n.lang === 'zh-Hant' && loc.zh) return loc.zh;
+      if (I18n.lang === 'ja' && loc.ja) return loc.ja;
+    }
+    return fallback;
+  }
   // 明細每列：主色 FC 標籤 + 2 個替代色小片（A+B 合一）
   function fcBadgeHtml(hex) {
     var ms = fcNear(hex, 3); if (!ms.length) return '';
@@ -401,7 +410,7 @@
     return {
       corpus: corpus,
       self: (cur && cur.alias && cur.alias.colors) || null,
-      fcName: function (hex) { var m = fcNear(hex, 1)[0]; return m ? { code: m.code, name: m.name } : null; }
+      fcName: function (hex) { var m = fcNear(hex, 1)[0]; return m ? { code: m.code, name: fcLocalName(m.code, m.name) } : null; }
     };
   }
   // 色彩肖像：由五構面即時算一句描述填入 #detail-portrait（需 detailData；純邏輯在 ColorPortraitLib）
