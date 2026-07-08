@@ -247,9 +247,21 @@
     document.documentElement.style.setProperty('--filter-h', (8 + $bar[0].offsetHeight + 6) + 'px');
   }
 
+  // 圖庫肖像（關係與時間）：描述目前可見的一批圖；≥4 張才有意義
+  function renderCollectionPortrait(visible) {
+    var el = document.getElementById('collection-portrait');
+    if (!el) return;
+    var items = (visible || []).filter(function (f) { return f.alias && f.alias.colors && f.alias.colors.length; })
+      .map(function (f) { return { colors: f.alias.colors, mtime: f.mtime, tags: f._tags }; });
+    if (!window.ColorPortraitLib || !ColorPortraitLib.collectionPortrait || items.length < 4) { el.textContent = ''; return; }
+    try { el.textContent = ColorPortraitLib.collectionPhrase(ColorPortraitLib.collectionPortrait(items), I18n.t); }
+    catch (e) { el.textContent = ''; }
+  }
+
   function render() {
     var $g = $('#gallery').empty();
     var visible = files.filter(matchesFilter);
+    renderCollectionPortrait(visible);
     // 依代表色相排序（同色系相鄰）；相同時以修改時間新→舊
     var sorted = visible.slice().sort(function (a, b) {
       var c = Lib.compareByHue(a.alias, b.alias);

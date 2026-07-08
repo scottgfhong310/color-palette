@@ -100,6 +100,9 @@ body.filter-open .hue-header { top: var(--filter-h, 60px); }
 .filter-count { font-size: .76rem; color: var(--muted); }
 .filter-clear { border: none; background: transparent; cursor: pointer; color: var(--accent); font-size: .76rem; font-family: inherit; }
 .filter-none { padding: 48px 0; text-align: center; color: var(--muted); }
+/* 圖庫肖像：一行摘要（關係與時間）；空時隱藏 */
+.collection-portrait { font-size: .8rem; color: var(--muted); margin: 0 0 14px; padding-left: 10px; border-left: 2px solid var(--accent); line-height: 1.5; }
+.collection-portrait:empty { display: none; }
 
 /* 色系分區標頭：黏在頂端，捲動時當前色系不會消失（圖多時定位用） */
 .hue-section { margin-bottom: 6px; }

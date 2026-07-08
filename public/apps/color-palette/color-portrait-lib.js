@@ -348,5 +348,68 @@
     return t;
   }
 
-  window.ColorPortraitLib = { describe: describe, phrase: phrase, card: card, tags: tags, familyOfHue: familyOfHue };
+  /**
+   * 圖庫肖像（關係與時間）：描述「一批圖」而非一張——整體冷暖、最常見的配色原型/和諧，
+   * 以及隨時間（mtime）的暖冷/彩度漂移。items = [{ colors:Color[], mtime:number }]。純函式。
+   */
+  function collectionPortrait(items) {
+    items = (items || []).filter(function (it) { return it && it.colors && it.colors.length; });
+    var n = items.length;
+    if (!n) return null;
+    var per = items.map(function (it) {
+      var m = metrics(it.colors), arch = null, harm = null;
+      if (it.tags && it.tags.length) {   // 與篩選同源：優先用落地的準確 tags
+        it.tags.forEach(function (tg) {
+          if (tg.indexOf('archetype:') === 0) arch = tg.slice(10);
+          else if (tg.indexOf('harmony:') === 0) harm = tg.slice(8);
+        });
+      } else {                            // 後備：由 alias 色近似算
+        var d = describe({ distribution: it.colors });
+        arch = d && d.archetype;
+        harm = (d && d.harmony && d.harmony !== 'varied' && d.harmony !== 'neutral') ? d.harmony : null;
+      }
+      return { mtime: it.mtime || 0, warmth: m.warmth, chroma: m.chroma, archetype: arch, harmony: harm };
+    });
+    var meanW = wsum(per, function (p) { return p.warmth; }) / n;
+    var meanC = wsum(per, function (p) { return p.chroma; }) / n;
+    // 最常見的原型/和諧（需覆蓋 ≥30% 才算「多為」）
+    function topOf(field) {
+      var cnt = {}, best = null;
+      per.forEach(function (p) { if (p[field]) cnt[p[field]] = (cnt[p[field]] || 0) + 1; });
+      Object.keys(cnt).forEach(function (k) { if (!best || cnt[k] > best.n) best = { key: k, n: cnt[k] }; });
+      return (best && best.n / n >= 0.3) ? best : null;
+    }
+    // 時間趨勢：依 mtime 排序，較新一半 vs 較舊一半的暖冷/彩度差（≥6 張才判）
+    var trend = null;
+    if (n >= 6) {
+      var s = per.slice().sort(function (a, b) { return a.mtime - b.mtime; }), h = Math.floor(n / 2);
+      var older = s.slice(0, h), newer = s.slice(n - h);
+      var dw = wsum(newer, function (p) { return p.warmth; }) / h - wsum(older, function (p) { return p.warmth; }) / h;
+      var dc = wsum(newer, function (p) { return p.chroma; }) / h - wsum(older, function (p) { return p.chroma; }) / h;
+      var cand = [
+        { tag: dw >= 0.15 ? 'warmer' : (dw <= -0.15 ? 'cooler' : null), d: Math.abs(dw) },
+        { tag: dc >= 0.10 ? 'more-vivid' : (dc <= -0.10 ? 'more-muted' : null), d: Math.abs(dc) }
+      ].filter(function (x) { return x.tag; }).sort(function (a, b) { return b.d - a.d; });
+      if (cand.length) trend = cand[0].tag;
+    }
+    return {
+      count: n, warmth: meanW, chroma: meanC,
+      tempLean: meanW >= 0.12 ? 'warm' : (meanW <= -0.12 ? 'cool' : 'neutral'),
+      topArchetype: topOf('archetype'), topHarmony: topOf('harmony'), trend: trend
+    };
+  }
+  // 圖庫肖像 → 一行摘要（compact，以 · 分隔）；措辭在 collection.* locale
+  function collectionPhrase(c, t) {
+    if (!c || typeof t !== 'function') return '';
+    var parts = [t('collection.count', { n: c.count }), t('collection.temp.' + c.tempLean)];
+    if (c.topArchetype) parts.push(t('collection.archetype', { a: t('portrait.archetype.' + c.topArchetype.key) }));
+    if (c.topHarmony) parts.push(t('collection.harmony', { h: t('portrait.harmony.' + c.topHarmony.key) }));
+    if (c.trend) parts.push(t('collection.trend.' + c.trend));
+    return parts.join(' · ');
+  }
+
+  window.ColorPortraitLib = {
+    describe: describe, phrase: phrase, card: card, tags: tags,
+    collectionPortrait: collectionPortrait, collectionPhrase: collectionPhrase, familyOfHue: familyOfHue
+  };
 })(window);
