@@ -509,13 +509,20 @@
     // 頁：強制換頁（block 上掛 break-before，非 flex 子項）
     function page(inner) { return '<div style="break-before:page;page-break-before:always;margin-top:6px">' + inner + '</div>'; }
 
-    // P1 總覽頭（break-inside:avoid＝圖＋五色帶不裂）；色帶高 30（＝原 12 × 2.5）
+    // 色彩肖像：一句描述（五構面 → ColorPortraitLib），放在色條區塊正上方（進右欄、圖旁）
+    var portrait = window.ColorPortraitLib
+      ? ColorPortraitLib.phrase(ColorPortraitLib.describe({ dominant: dom, distribution: dist, accent: acc, families: fam }), I18n.t)
+      : '';
+    var portraitCap = portrait
+      ? '<p style="font-style:italic;opacity:.85;margin:0 0 12px;padding-left:10px;border-left:2px solid #8886">' + mdEsc(portrait) + '</p>'
+      : '';
+    // P1 總覽頭（break-inside:avoid＝圖＋肖像＋五色帶不裂）；色帶高 15
     var bands = [
       { n: T.fam, o: N.area, c: fam }, { n: T.dom, o: N.area, c: dom }, { n: T.all, o: N.area, c: all },
       { n: T.dist, o: N.trueArea, c: dist }, { n: T.acc, o: N.sal, c: acc }
     ].map(function (b) {
-      return '<div style="margin:0 0 12px"><div style="font-size:.85em;opacity:.72;margin-bottom:3px">' +
-             mdEsc(b.n) + ' <span style="opacity:.6">· ' + mdEsc(b.o) + '</span></div>' + mdBandSvg(b.c, 30) + '</div>';
+      return '<div style="margin:0 0 10px"><div style="font-size:.85em;opacity:.72;margin-bottom:3px">' +
+             mdEsc(b.n) + ' <span style="opacity:.6">· ' + mdEsc(b.o) + '</span></div>' + mdBandSvg(b.c, 15) + '</div>';
     }).join('');
     var overview =
       '<div style="break-inside:avoid;page-break-inside:avoid;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">' +
@@ -523,7 +530,7 @@
           '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="' + MD_IMG_STYLE + '">' +
           '<div style="font-size:.82em;opacity:.7;margin-top:6px">' + mdEsc(Lib.formatSize(f.size)) + '</div>' +
         '</div>' +
-        '<div style="flex:1 1 0;min-width:260px">' + bands + '</div>' +
+        '<div style="flex:1 1 0;min-width:260px">' + portraitCap + bands + '</div>' +
       '</div>';
 
     // P2 色族 | 主色（各含 h3）
@@ -537,14 +544,7 @@
       ? page(twoCol(col(h3(T.dist, N.trueArea) + mdTableHtml(dist)), col(h3(T.acc, N.sal) + mdTableHtml(acc))))
       : page(h3(T.dist, N.trueArea) + multiCol(dist, 3)) + page(h3(T.acc, N.sal) + multiCol(acc, 3));
 
-    // 色彩肖像：一句描述放在標題下（五構面 → ColorPortraitLib）
-    var portrait = window.ColorPortraitLib
-      ? ColorPortraitLib.phrase(ColorPortraitLib.describe({ dominant: dom, distribution: dist, accent: acc, families: fam }), I18n.t)
-      : '';
-    var cap = portrait
-      ? '<p style="font-style:italic;opacity:.85;margin:.1em 0 1.1em;padding-left:10px;border-left:2px solid #8886">' + mdEsc(portrait) + '</p>'
-      : '';
-    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', cap, overview, p2, p3, distAcc, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
+    return ['## ' + stem + ' — ' + I18n.t('md.report.heading'), '', overview, p2, p3, distAcc, '', '<sub>' + I18n.t('md.footer') + '</sub>'].join('\n');
   }
   // 存成 .md 到 palettes/，並在 markdown-library 以 ?mymd 絕對路徑開啟
   function saveDetailMd() {
