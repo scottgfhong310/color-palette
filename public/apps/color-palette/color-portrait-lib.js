@@ -97,22 +97,24 @@
         poles.push({ hue: c.hue, w: c.w, x: Math.cos(c.hue * DEG) * c.w, y: Math.sin(c.hue * DEG) * c.w });
       }
     });
-    var hues = poles.filter(function (p) { return p.w >= 0.07; }).sort(function (a, b) { return b.w - a.w; })
-                    .map(function (p) { return p.hue; });
+    var sig = poles.filter(function (p) { return p.w >= 0.07; }).sort(function (a, b) { return b.w - a.w; });
+    var polesOut = sig.map(function (p) { return { hue: p.hue, share: p.w }; });
+    var hues = sig.map(function (p) { return p.hue; });
     var n = hues.length;
-    if (n === 0) return 'neutral';
-    if (n === 1) return 'monochrome';
-    if (n === 2) { var g = hueDist(hues[0], hues[1]); return g <= 40 ? 'analogous' : (g >= 145 ? 'complementary' : 'varied'); }
-    if (n === 3) {
-      if (hueSpan(hues) <= 90) return 'analogous';
-      var gaps = sortedGaps(hues);
-      if (gaps.every(function (x) { return Math.abs(x - 120) <= 35; })) return 'triadic';
-      var gs = gaps.slice().sort(function (a, b) { return a - b; });
-      if (gs[0] <= 60 && gs[1] >= 120 && Math.abs(gs[1] - gs[2]) <= 40) return 'split-complementary';
-      return 'varied';
+    var scheme;
+    if (n === 0) scheme = 'neutral';
+    else if (n === 1) scheme = 'monochrome';
+    else if (n === 2) { var g = hueDist(hues[0], hues[1]); scheme = g <= 40 ? 'analogous' : (g >= 145 ? 'complementary' : 'varied'); }
+    else if (n === 3) {
+      var gaps = sortedGaps(hues), gs = gaps.slice().sort(function (a, b) { return a - b; });
+      if (hueSpan(hues) <= 90) scheme = 'analogous';
+      else if (gaps.every(function (x) { return Math.abs(x - 120) <= 35; })) scheme = 'triadic';
+      else if (gs[0] <= 60 && gs[1] >= 120 && Math.abs(gs[1] - gs[2]) <= 40) scheme = 'split-complementary';
+      else scheme = 'varied';
     }
-    if (n === 4) return isTetradic(hues) ? 'tetradic' : (hueSpan(hues) <= 90 ? 'analogous' : 'varied');
-    return 'varied';
+    else if (n === 4) scheme = isTetradic(hues) ? 'tetradic' : (hueSpan(hues) <= 90 ? 'analogous' : 'varied');
+    else scheme = 'varied';
+    return { scheme: scheme, poles: polesOut };
   }
 
   /**
@@ -166,8 +168,9 @@
       if (fa < 0.15 && hsl(ac).s >= 0.4) { focal = { hex: ac.hex, family: fk, familyArea: fa, rank: ai + 1 }; break; }
     }
 
-    // 和諧配色（色彩理論）：色相聚極 → 單色/類比/互補/分裂互補/三角/四角/varied
-    var harmony = harmonyOf(dist, total);
+    // 和諧配色（色彩理論）：色相聚極 → 單色/類比/互補/分裂互補/三角/四角/varied（＋極點供畫卡）
+    var harm = harmonyOf(dist, total);
+    var harmony = harm.scheme;
 
     // 張力（跨構面矛盾 = 最有訊息量的描述）
     var tensions = [];
@@ -197,6 +200,7 @@
     return {
       temperature: { shares: temp, verdict: tempVerdict, bothWarmCool: bothWC },
       families: families, dominant: dominant, key: key, chroma: chroma,
+      keyValue: keyL, chromaValue: chr, poles: harm.poles,   // 供視覺肖像卡
       accent: accent, focal: focal, harmony: harmony, tensions: tensions, relative: relative
     };
   }
@@ -247,5 +251,65 @@
     return s.charAt(0).toUpperCase() + s.slice(1);   // 英文首字大寫；CJK 為 no-op
   }
 
-  window.ColorPortraitLib = { describe: describe, phrase: phrase, familyOfHue: familyOfHue };
+  /**
+   * 視覺肖像卡：把 Description 畫成一張 SVG「色彩指紋卡」（純字串、不碰 DOM）。
+   * 四個儀表：和諧環（色相環＋聚極點＋配色幾何）｜溫度條（暖/中/冷）｜明度×彩度座標點｜焦點色塊＋FC 名。
+   * t＝i18n（畫和諧方案名）；opts.fcName(hex)→{code,name}（焦點色命名，同 phrase）。
+   * 顏色用實際色（列印＝前景必印）；文字/框用 currentColor / 半透明灰（主題自適應）。
+   */
+  function card(desc, t, opts) {
+    if (!desc) return '';
+    opts = opts || {};
+    var tf = typeof t === 'function' ? t : function () { return ''; };
+    function f(n) { return Math.round(n * 10) / 10; }
+    function esc(x) { return String(x == null ? '' : x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    var W = 300, H = 104, P = [];
+
+    // 1) 和諧環：色相環刻度 + 配色幾何連線 + 聚極點（大小依面積）+ 方案名
+    var wx = 50, wy = 46, wr = 34;
+    for (var a = 0; a < 360; a += 6) {
+      var ar = (a - 90) * DEG, x1 = wx + Math.cos(ar) * (wr - 6), y1 = wy + Math.sin(ar) * (wr - 6),
+          x2 = wx + Math.cos(ar) * wr, y2 = wy + Math.sin(ar) * wr;
+      P.push('<line x1="' + f(x1) + '" y1="' + f(y1) + '" x2="' + f(x2) + '" y2="' + f(y2) + '" stroke="hsl(' + a + ',72%,52%)" stroke-width="3"/>');
+    }
+    var poles = desc.poles || [];
+    function pxy(hue, rad) { var ar = (hue - 90) * DEG; return [wx + Math.cos(ar) * rad, wy + Math.sin(ar) * rad]; }
+    if (poles.length >= 2) {
+      var pp = poles.map(function (p) { return pxy(p.hue, wr - 10); });
+      P.push('<path d="M' + pp.map(function (q) { return f(q[0]) + ',' + f(q[1]); }).join('L') + (poles.length >= 3 ? 'Z' : '') + '" fill="none" stroke="#8887" stroke-width="1"/>');
+    }
+    poles.forEach(function (p) {
+      var q = pxy(p.hue, wr - 10), rr = 2.6 + Math.min(8, p.share * 15);
+      P.push('<circle cx="' + f(q[0]) + '" cy="' + f(q[1]) + '" r="' + f(rr) + '" fill="hsl(' + Math.round(p.hue) + ',66%,50%)" stroke="#fff" stroke-width="1"/>');
+    });
+    var hn = (desc.harmony && desc.harmony !== 'varied' && desc.harmony !== 'neutral') ? tf('portrait.harmony.' + desc.harmony) : '';
+    P.push('<text x="' + wx + '" y="' + (H - 5) + '" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.75">' + esc(hn) + '</text>');
+
+    // 2) 溫度條（暖 | 中 | 冷）
+    var tbx = 98, tbw = 96, tby = 18, tbh = 13, sh = desc.temperature.shares, tot = (sh.warm + sh.cool + sh.neutral) || 1, cx = tbx;
+    P.push('<rect x="' + tbx + '" y="' + tby + '" width="' + tbw + '" height="' + tbh + '" rx="3" fill="#8882"/>');
+    [[sh.warm, '#e0894a'], [sh.neutral, '#9b9b9b'], [sh.cool, '#4f8fcf']].forEach(function (g) {
+      var w = g[0] / tot * tbw; if (w > 0.4) P.push('<rect x="' + f(cx) + '" y="' + tby + '" width="' + f(w) + '" height="' + tbh + '" fill="' + g[1] + '"/>'); cx += w;
+    });
+    P.push('<rect x="' + tbx + '" y="' + tby + '" width="' + tbw + '" height="' + tbh + '" rx="3" fill="none" stroke="#8886"/>');
+
+    // 3) 明度×彩度座標：x＝彩度（左濁→右鮮）、y＝明度（下暗→上亮）；點＝主色
+    var mx = 98, my = 40, ms = 48;
+    P.push('<rect x="' + mx + '" y="' + my + '" width="' + ms + '" height="' + ms + '" rx="3" fill="#8881" stroke="#8886"/>');
+    var domHex = (desc.dominant && desc.dominant.hex) || '#888';
+    P.push('<circle cx="' + f(mx + (desc.chromaValue || 0) * ms) + '" cy="' + f(my + (1 - (desc.keyValue || 0)) * ms) + '" r="4.5" fill="' + domHex + '" stroke="#fff" stroke-width="1"/>');
+
+    // 4) 焦點色塊（focal 優先，否則主色）＋ FC 名
+    var fc = desc.focal || desc.dominant;
+    if (fc && fc.hex) {
+      var fcn = typeof opts.fcName === 'function' ? opts.fcName(fc.hex) : null;
+      P.push('<rect x="206" y="24" width="46" height="46" rx="6" fill="' + fc.hex + '" stroke="#8886"/>');
+      P.push('<text x="260" y="46" font-size="11" fill="currentColor">' + (fcn ? 'FC' + esc(fcn.code) : esc(fc.hex.toUpperCase())) + '</text>');
+      if (fcn) P.push('<text x="260" y="60" font-size="8.5" fill="currentColor" opacity="0.7">' + esc(fcn.name) + '</text>');
+    }
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="max-width:' + W + 'px;display:block" xmlns="http://www.w3.org/2000/svg">' + P.join('') + '</svg>';
+  }
+
+  window.ColorPortraitLib = { describe: describe, phrase: phrase, card: card, familyOfHue: familyOfHue };
 })(window);

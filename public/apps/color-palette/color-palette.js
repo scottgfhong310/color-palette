@@ -415,8 +415,8 @@
   }
   // 色彩肖像：由五構面即時算一句描述填入 #detail-portrait（需 detailData；純邏輯在 ColorPortraitLib）
   function renderPortrait() {
-    var $p = $('#detail-portrait');
-    if (!detailData || !window.ColorPortraitLib) { $p.text(''); return; }
+    var $p = $('#detail-portrait'), $c = $('#detail-card');
+    if (!detailData || !window.ColorPortraitLib) { $p.text(''); $c.empty(); return; }
     try {
       var opts = portraitOpts(detailName);
       var desc = ColorPortraitLib.describe({
@@ -425,13 +425,14 @@
         accent: Lib.accentColors(detailData, { radius: 5, maxColors: 24 })
       }, opts);
       $p.text(ColorPortraitLib.phrase(desc, I18n.t, opts));
-    } catch (e) { $p.text(''); }
+      $c.html(ColorPortraitLib.card ? ColorPortraitLib.card(desc, I18n.t, opts) : '');
+    } catch (e) { $p.text(''); $c.empty(); }
   }
   function openDetail(f) {
     detailName = f.name;
     $('#detail-image').attr('src', versionedUrl(f));
     $('#detail-name').text(f.name);
-    $('#detail-portrait').text('');           // 清空，待像素載入後生成
+    $('#detail-portrait').text(''); $('#detail-card').empty();  // 清空，待像素載入後生成
     detailView = (f.alias && f.alias.method === 'frequency') ? 'dominant' : 'family';
     detailData = null;
     renderDetailPalette();                    // 先用落地色票即時顯示
@@ -532,13 +533,15 @@
     // 頁：強制換頁（block 上掛 break-before，非 flex 子項）
     function page(inner) { return '<div style="break-before:page;page-break-before:always;margin-top:6px">' + inner + '</div>'; }
 
-    // 色彩肖像：一句描述（五構面 → ColorPortraitLib，含相對圖庫＋FC 命名焦點），放在色條區塊正上方
+    // 色彩肖像（五構面 → ColorPortraitLib，含相對圖庫＋FC 命名焦點）：一句描述 + 視覺指紋卡，放在色條區塊正上方
     var pOpts = portraitOpts(detailName);
-    var portrait = window.ColorPortraitLib
-      ? ColorPortraitLib.phrase(ColorPortraitLib.describe({ dominant: dom, distribution: dist, accent: acc, families: fam }, pOpts), I18n.t, pOpts)
-      : '';
+    var pDesc = window.ColorPortraitLib ? ColorPortraitLib.describe({ dominant: dom, distribution: dist, accent: acc, families: fam }, pOpts) : null;
+    var portrait = pDesc ? ColorPortraitLib.phrase(pDesc, I18n.t, pOpts) : '';
     var portraitCap = portrait
-      ? '<p style="font-style:italic;opacity:.85;margin:0 0 12px;padding-left:10px;border-left:2px solid #8886">' + mdEsc(portrait) + '</p>'
+      ? '<p style="font-style:italic;opacity:.85;margin:0 0 10px;padding-left:10px;border-left:2px solid #8886">' + mdEsc(portrait) + '</p>'
+      : '';
+    var portraitCard = (pDesc && ColorPortraitLib.card)
+      ? '<div style="margin:0 0 12px">' + ColorPortraitLib.card(pDesc, I18n.t, pOpts) + '</div>'
       : '';
     // P1 總覽頭（break-inside:avoid＝圖＋肖像＋五色帶不裂）；色帶高 15
     var bands = [
@@ -554,7 +557,7 @@
           '<img src="' + versionedUrl(f) + '" alt="' + mdEsc(stem) + '" style="' + MD_IMG_STYLE + '">' +
           '<div style="font-size:.82em;opacity:.7;margin-top:6px">' + mdEsc(Lib.formatSize(f.size)) + '</div>' +
         '</div>' +
-        '<div style="flex:1 1 0;min-width:260px">' + portraitCap + bands + '</div>' +
+        '<div style="flex:1 1 0;min-width:260px">' + portraitCap + portraitCard + bands + '</div>' +
       '</div>';
 
     // P2 色族 | 主色（各含 h3）

@@ -283,6 +283,10 @@ body.density-compact .pcard-hint { display: none; }
   margin: 0 0 12px; padding-left: 10px; border-left: 2px solid var(--accent);
 }
 .detail-portrait:empty { display: none; }
+/* 視覺肖像卡：SVG 指紋卡；文字用 currentColor（隨主題），框用半透明灰 */
+.detail-card { margin: 0 0 14px; color: var(--muted); }
+.detail-card:empty { display: none; }
+.detail-card svg { max-width: 320px; }
 .detail-list li {
   display: flex; align-items: center; gap: 10px;
   padding: 7px 0; border-bottom: 1px solid var(--border);
