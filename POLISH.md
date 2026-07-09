@@ -10,7 +10,7 @@
 ## 0. 一句話
 
 決定論的 `phrase()` 產生**站得住腳的那一句**（例：「整體偏暖、互補配色、大地色調，焦點是一抹小而鮮的印度紅 ≈FC192。」）。
-**潤稿**＝把那一句丟給 Claude 改寫得更漂亮，**只換明細畫面上的顯示**——不落地、不進報告。沒設金鑰時，這個功能根本不存在。
+**潤稿**＝把那一句丟給模型改寫得更漂亮（Anthropic 或 OpenAI，走 `.env` 選），**只換明細畫面上的顯示**——不落地、不進報告。沒設金鑰時，這個功能根本不存在。
 
 ---
 
@@ -29,18 +29,24 @@
 
 ### 1.2 `.env` 有哪些鍵
 
+支援兩家，用 `LLM_PROVIDER` 選（**預設 `anthropic`，保持 canon**）；只需填你選的那一家的金鑰。
+
 | 鍵 | 必填 | 預設 | 說明 |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | 要用潤稿才需要 | —（未設＝停用） | Anthropic 金鑰（`x-api-key`）。取得：<https://console.claude.com/> |
-| `ANTHROPIC_MODEL` | 否 | `claude-opus-4-8` | 潤稿用的模型。這是「短句改寫」小任務，想省成本可改 `claude-haiku-4-5`。 |
+| `LLM_PROVIDER` | 否 | `anthropic` | 選哪一家：`anthropic` \| `openai`。 |
+| `ANTHROPIC_API_KEY` | provider=anthropic 時要 | —（未設＝停用） | Anthropic 金鑰（`x-api-key`）。取得：<https://console.claude.com/> |
+| `ANTHROPIC_MODEL` | 否 | `claude-opus-4-8` | 短句改寫想省成本可改 `claude-haiku-4-5`。 |
+| `OPENAI_API_KEY` | provider=openai 時要 | —（未設＝停用） | OpenAI 金鑰（`Authorization: Bearer`）。取得：<https://platform.openai.com/api-keys> |
+| `OPENAI_MODEL` | 否 | `gpt-4o-mini` | 註：o1/o3 系列的上限鍵是 `max_completion_tokens`，程式目前用 `max_tokens`（適用 gpt-4o/4o-mini/4-turbo/3.5）。 |
 | `PORT` | 否 | `3000` | 覆寫 port（家族 canon）。 |
 
 > `.env` 已列入 `.gitignore`——**金鑰永不進版控**。範本是 `.env.example`（可安全提交）。
+> `GET /config` 回 `llm:true` 的條件＝**目前選定 provider 的金鑰有設**（未設就靜默停用）。
 
 ### 1.3 金鑰住哪、為什麼
 
 - **只在後端**：金鑰由 Node 後端讀取、由後端呼叫 Anthropic。**瀏覽器永遠拿不到金鑰**（前端只打自家的 `/api/color-palette/polish`）。
-- **零 npm 相依**：後端用 **Node 內建 `fetch`** 直呼 Anthropic Messages API，**不引 `@anthropic-ai/sdk`**——維持家族「薄後端」canon。
+- **零 npm 相依**：後端用 **Node 內建 `fetch`** 直呼**所選 provider** 的 API（Anthropic Messages API 或 OpenAI Chat Completions），**不引 SDK**——維持家族「薄後端」canon。system/user 兩段 prompt 與護欄兩家共用，只有「傳輸層」（端點/認證/請求形狀/取回位置）不同。
 - **極簡 `.env` 載入器**：`app.js` 內建約十行的載入器（把 `.env` 補進 `process.env`，僅補未設定者），**不依賴 `dotenv`**。
   你也可以完全不用 `.env`、改在環境直接 export：`ANTHROPIC_API_KEY=sk-ant-... node app.js`。
 
@@ -140,7 +146,7 @@ curl localhost:3000/api/color-palette/config
 | 端點 | 用途 | 回應 |
 |---|---|---|
 | `GET /api/color-palette/config` | 前端啟動探詢能力 | `{ ok, llm }` |
-| `POST /api/color-palette/polish` | 潤稿一句色彩肖像 | `{ ok, text, model }` 或 `{ ok:false, error }` |
+| `POST /api/color-palette/polish` | 潤稿一句色彩肖像 | `{ ok, text, model, provider }` 或 `{ ok:false, error }` |
 
 `/polish` 護欄：`sentence` ≤ 600 字、`locale` 白名單（zh-Hant/en/ja，否則預設 zh-Hant）、逾時 20s、輸出裁 ≤ 800 字。
 

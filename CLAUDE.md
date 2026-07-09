@@ -57,8 +57,8 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
   **v2 加值（依賴注入、lib 仍純）**：`phrase(desc, t, {fcName})` 用 hook 把焦點色命名為實體 Faber-Castell 色，**依語言在地化**（zh「印度紅 ≈FC192」／ja「インディアンレッド」／en「India red」，色號不變；對照表 `data/fc-names-i18n.js`，控制器 `fcLocalName()`）；`describe(facets, {corpus, self})` 吃「圖庫其他圖的 alias 色」當語料，把本圖暖度/彩度放進分布，**只在約前/後 8%（`REL_MIN=0.42`，實測約 1/3 圖）才發相對句**「在你的圖庫裡算偏暖/冷/鮮/沉靜的一張」。控制器 `portraitOpts()` 組語料＋FC hook。想法到設計（五色型→v1→v2→未來）見 [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md)。**家族共用候選**（比照 `faber-castell-color-lib`，驗證後可抽出給 `thangka-trace` 等）。
 - **選配 LLM 潤稿**（opt-in，純核心不變）：`color-portrait-lib` 的決定論 `phrase()` 仍是**落地 alias / `.md` / 報告 / 標籤 / 肖像卡的唯一來源**；
   潤稿只改**明細 Modal 那一句的 UI 顯示**（transient、不落地）。後端 `POST /polish`＝把決定論句＋精簡事實護欄丟給 Claude 改寫，
-  **以 Node 內建 `fetch` 直呼 Anthropic Messages API（不引 SDK，維持薄後端零 npm 相依）**；金鑰走 `.env` 的 `ANTHROPIC_API_KEY`
-  （app.js 內建極簡 `.env` 載入器；`ANTHROPIC_MODEL` 可覆寫，預設 `claude-opus-4-8`）。未設金鑰＝`GET /config` 回 `llm:false`、
+  **以 Node 內建 `fetch` 直呼所選 provider 的 API（不引 SDK，維持薄後端零 npm 相依）**——`.env` 的 `LLM_PROVIDER` 選 `anthropic`（預設，Messages API）或 `openai`（Chat Completions），
+  金鑰走 `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`（app.js 內建極簡 `.env` 載入器；模型走 `ANTHROPIC_MODEL`/`OPENAI_MODEL`，預設 `claude-opus-4-8`/`gpt-4o-mini`；`callLLM()` 內兩家共用同一份 prompt，只換傳輸層）。未設對應金鑰＝`GET /config` 回 `llm:false`、
   明細不出現 ✨ 潤稿鈕（靜默停用）。system prompt 明令「只描述顏色、不臆造內容」，事實清單僅作 grounding 護欄；逾時 20s、錯誤回 `{ok:false,error}`。**怎麼啟用＋在 app 中如何表現見 [POLISH.md](POLISH.md)**；想法定位見 [COLOR-PORTRAIT.md](COLOR-PORTRAIT.md) §6.3。
 - **API 信封**：一律 `{ ok }`；jQuery 3.7.1，後端不依賴 lodash。
 

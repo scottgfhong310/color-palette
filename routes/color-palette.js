@@ -227,13 +227,55 @@ router.post('/delete', async (req, res) => {
 
 // ---- 選配 LLM 潤稿（opt-in；純核心仍決定論、零相依）------------------------
 // color-portrait-lib 的 phrase() 永遠是決定論、落地/報告用的來源；此端點只是「文采潤飾」——
-// 把已在地化的那一句 + 精簡事實丟給 Claude 改寫得更漂亮。API key 走 .env（ANTHROPIC_API_KEY），
-// 未設定時整個功能靜默停用（前端據 GET /config 決定是否顯示按鈕）。零 npm 相依：以 Node 內建 fetch 直呼 API。
+// 把已在地化的那一句 + 精簡事實丟給模型改寫得更漂亮。零 npm 相依：以 Node 內建 fetch 直呼 API。
+// 支援兩家（走 .env 的 LLM_PROVIDER 選，預設 anthropic 保持 canon）：
+//   anthropic：ANTHROPIC_API_KEY / ANTHROPIC_MODEL（預設 claude-opus-4-8）
+//   openai   ：OPENAI_API_KEY   / OPENAI_MODEL   （預設 gpt-4o-mini）
+// 未設對應金鑰＝整個功能靜默停用（前端據 GET /config 決定是否顯示按鈕）。
 const LLM_LOCALES = new Set(['zh-Hant', 'en', 'ja']);
 const LLM_LANG_NAME = { 'zh-Hant': 'Traditional Chinese (繁體中文)', en: 'English', ja: 'Japanese (日本語)' };
-const LLM_MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-8';   // 預設 Opus 4.8；可用 .env 覆寫（如 claude-haiku-4-5 省成本）
+const LLM_PROVIDER = (process.env.LLM_PROVIDER || 'anthropic').toLowerCase();
 
-function llmEnabled() { return Boolean(process.env.ANTHROPIC_API_KEY); }
+function llmKey() { return LLM_PROVIDER === 'openai' ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY; }
+function llmModel() {
+  return LLM_PROVIDER === 'openai'
+    ? (process.env.OPENAI_MODEL || 'gpt-4o-mini')
+    : (process.env.ANTHROPIC_MODEL || 'claude-opus-4-8');
+}
+function llmEnabled() { return Boolean(llmKey()); }
+
+// 呼叫選定的 provider 改寫一句；回文字，或 throw { kind:'upstream'|'refusal'|'empty', msg? }。
+// system/user 兩段字串兩家共用（同一份 prompt 與護欄）——只有「傳輸層」不同（端點/認證/請求形狀/取回位置）。
+async function callLLM(system, user, signal) {
+  const model = llmModel();
+  if (LLM_PROVIDER === 'openai') {
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', signal,
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.OPENAI_API_KEY },
+      body: JSON.stringify({ model, max_tokens: 256, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] })
+    });
+    const data = await resp.json().catch(() => null);
+    if (!resp.ok || !data) throw { kind: 'upstream', msg: (data && data.error && data.error.message) || ('HTTP ' + resp.status) };
+    const choice = Array.isArray(data.choices) ? data.choices[0] : null;
+    if (choice && choice.message && choice.message.refusal) throw { kind: 'refusal' };
+    const text = choice && choice.message && typeof choice.message.content === 'string' ? choice.message.content.trim() : '';
+    if (!text) throw { kind: 'empty' };
+    return text;
+  }
+  // anthropic（預設）
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', signal,
+    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model, max_tokens: 256, system, messages: [{ role: 'user', content: user }] })
+  });
+  const data = await resp.json().catch(() => null);
+  if (!resp.ok || !data) throw { kind: 'upstream', msg: (data && data.error && data.error.message) || ('HTTP ' + resp.status) };
+  if (data.stop_reason === 'refusal') throw { kind: 'refusal' };
+  const block = Array.isArray(data.content) ? data.content.find(c => c && c.type === 'text') : null;
+  const text = block && typeof block.text === 'string' ? block.text.trim() : '';
+  if (!text) throw { kind: 'empty' };
+  return text;
+}
 
 // 事實清單消毒：只留白名單欄位、字串裁長、陣列裁量——當作模型的 grounding 護欄（防漂移），不當內容來源。
 function slimFacts(f) {
@@ -282,32 +324,22 @@ router.post('/polish', async (req, res) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({ model: LLM_MODEL, max_tokens: 256, system, messages: [{ role: 'user', content: user }] })
-    });
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok || !data) {
-      const msg = (data && data.error && data.error.message) || ('HTTP ' + resp.status);
-      console.error('[color-palette] POST /polish upstream error:', msg);
+    const text = await callLLM(system, user, controller.signal);
+    console.log('[color-palette] POST /polish →', LLM_PROVIDER, llmModel(), '(' + locale + ')');
+    return res.json({ ok: true, text: text.slice(0, 800), model: llmModel(), provider: LLM_PROVIDER });
+  } catch (err) {
+    if (err && err.name === 'AbortError') {
+      console.error('[color-palette] POST /polish failed: timeout');
+      return res.status(504).json({ ok: false, error: 'llm-timeout' });
+    }
+    if (err && err.kind === 'refusal') return res.json({ ok: false, error: 'llm-refusal' });
+    if (err && err.kind === 'empty') return res.json({ ok: false, error: 'llm-empty' });
+    if (err && err.kind === 'upstream') {
+      console.error('[color-palette] POST /polish upstream error:', err.msg);
       return res.status(502).json({ ok: false, error: 'llm-upstream' });
     }
-    if (data.stop_reason === 'refusal') return res.json({ ok: false, error: 'llm-refusal' });
-    const block = Array.isArray(data.content) ? data.content.find(c => c && c.type === 'text') : null;
-    const text = block && typeof block.text === 'string' ? block.text.trim() : '';
-    if (!text) return res.json({ ok: false, error: 'llm-empty' });
-    console.log('[color-palette] POST /polish →', LLM_MODEL, '(' + locale + ')');
-    return res.json({ ok: true, text: text.slice(0, 800), model: LLM_MODEL });
-  } catch (err) {
-    const aborted = err && err.name === 'AbortError';
-    console.error('[color-palette] POST /polish failed:', aborted ? 'timeout' : err.message);
-    return res.status(aborted ? 504 : 500).json({ ok: false, error: aborted ? 'llm-timeout' : 'llm-error' });
+    console.error('[color-palette] POST /polish failed:', err && err.message);
+    return res.status(500).json({ ok: false, error: 'llm-error' });
   } finally {
     clearTimeout(timer);
   }
