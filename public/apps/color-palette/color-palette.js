@@ -858,9 +858,11 @@
     var cols;
     if (basis === 'distribution' || basis === 'accent') {
       if (!lbSample || !lbSample.small) return;                 // 需像素（載入後才可）
+      // 與明細「分布/重點色」視圖同參數（省略 maxColors → 用 lib 預設：分布 24、重點色 12），
+      // 免得燈箱分布色數少於明細的「實際分布」。
       cols = (basis === 'distribution')
-        ? Lib.distributionByDeltaE(lbSample.small, { radius: 5, maxColors: 12 })
-        : Lib.accentColors(lbSample.small, { radius: 5, maxColors: 12 });
+        ? Lib.distributionByDeltaE(lbSample.small, { radius: 5 })
+        : Lib.accentColors(lbSample.small, { radius: 5 });
     } else { basis = 'alias'; cols = lbAliasColors; }
     if (!cols || !cols.length) { toast('lightbox.basisEmpty', 'orange'); return; }   // 算不出色（如無重點色）→ 不切
     lbBasis = basis; lbColors = cols;
