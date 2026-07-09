@@ -401,6 +401,17 @@ body.density-compact .pcard-hint { display: none; }
 }
 .lb-pal-idle { font-size: .74rem; opacity: .6; }
 #lightbox-pick:not([hidden]) ~ .lb-pal-idle { display: none; }   /* 取到色就藏提示 */
+/* 遮罩基準切換（色票 / 分布 / 重點色）：切換色票列所依的 COLOR-TYPE */
+.lb-basis {
+  flex: 0 0 auto; display: flex; gap: 3px; padding: 8px 10px 0;
+}
+.lb-basis-btn {
+  flex: 1 1 0; min-width: 0; padding: 4px 2px; border: 1px solid rgba(255,255,255,.14);
+  border-radius: 6px; background: rgba(255,255,255,.04); color: rgba(255,255,255,.7);
+  font-size: .68rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lb-basis-btn:hover { background: rgba(255,255,255,.10); color: #fff; }
+.lb-basis-btn.active { border-color: var(--accent); background: rgba(144,202,249,.20); color: #fff; }
 /* 色系遮罩 chip 列（取色頭與色票列之間）：點一個色系→整個色群定位 */
 .lb-families {
   flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 5px;

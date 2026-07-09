@@ -728,7 +728,9 @@
   // ---- 燈箱：細看原圖 ＋ 色票互動（縮放/色距的純數學在 lib，這裡碰 DOM/canvas） --
   var lbView = Lib.identityView();
   var lbDrag = null;                  // { x0, y0, tx0, ty0, moved }
-  var lbColors = [];                  // 目前圖的色票 [{r,g,b,hex,...}]
+  var lbColors = [];                  // 目前作用中的遮罩基準色盤 [{r,g,b,hex,...}]（隨基準切換）
+  var lbAliasColors = [];             // 落地色票（'色票' 基準；開圖時即備妥）
+  var lbBasis = 'alias';              // 遮罩基準：'alias'（落地色票）/ 'distribution'（分布）/ 'accent'（重點色）
   var lbSample = null;                // 離屏取樣：{ data, w, h }（getImageData）
   var lbActiveIdx = -1;               // 目前定位中的色票 index（單色 mask）
   var lbActiveFam = null;            // 目前定位中的色系 key（色系 mask）；與 lbActiveIdx 互斥
@@ -754,7 +756,9 @@
   function openLightbox(name) {
     var f = findFile(name);
     if (!f) return;
-    lbColors = (f.alias && f.alias.colors) || [];
+    lbAliasColors = (f.alias && f.alias.colors) || [];
+    lbBasis = 'alias'; lbColors = lbAliasColors;      // 開圖預設用落地色票；載入後可切換到 分布/重點色
+    $('#lightbox-basis .lb-basis-btn').removeClass('active').filter('[data-basis="alias"]').addClass('active');
     lbView = Lib.identityView();
     clearMask();
     buildLbPalette();
@@ -784,7 +788,17 @@
     var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
     var ctx = cv.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(img, 0, 0, w, h);
-    try { lbSample = { cv: cv, data: ctx.getImageData(0, 0, w, h).data, w: w, h: h }; }
+    // 另備一張 240px 小樣本：供「遮罩基準」切換時即時重算 分布/重點色（比全解析度快很多）
+    var small = null;
+    try {
+      var ss = Math.min(1, 240 / Math.max(nw, nh));
+      var sw = Math.max(1, Math.round(nw * ss)), sh = Math.max(1, Math.round(nh * ss));
+      var scv = document.createElement('canvas'); scv.width = sw; scv.height = sh;
+      var sctx = scv.getContext('2d', { willReadFrequently: true });
+      sctx.drawImage(img, 0, 0, sw, sh);
+      small = sctx.getImageData(0, 0, sw, sh).data;
+    } catch (e) { small = null; }
+    try { lbSample = { cv: cv, data: ctx.getImageData(0, 0, w, h).data, w: w, h: h, small: small }; }
     catch (e) { lbSample = null; }
   }
 
@@ -836,6 +850,23 @@
         .toggleClass('active', lbActiveFam === fam)
         .appendTo($c);
     });
+  }
+
+  // 遮罩基準：切換色票列＝落地色票 / 分布(ΔE≈5) / 重點色(彩度加權)，供「對著某個 COLOR-TYPE 遮罩」。
+  //   分布/重點色由 240px 小樣本即時重算（純函式）；切換後色票列、單色遮罩、滴管高亮都改對這個色盤。
+  function setLbBasis(basis) {
+    var cols;
+    if (basis === 'distribution' || basis === 'accent') {
+      if (!lbSample || !lbSample.small) return;                 // 需像素（載入後才可）
+      cols = (basis === 'distribution')
+        ? Lib.distributionByDeltaE(lbSample.small, { radius: 5, maxColors: 12 })
+        : Lib.accentColors(lbSample.small, { radius: 5, maxColors: 12 });
+    } else { basis = 'alias'; cols = lbAliasColors; }
+    if (!cols || !cols.length) { toast('lightbox.basisEmpty', 'orange'); return; }   // 算不出色（如無重點色）→ 不切
+    lbBasis = basis; lbColors = cols;
+    lbPinned = null; hidePick(); clearMask();
+    buildLbPalette();
+    $('#lightbox-basis .lb-basis-btn').removeClass('active').filter('[data-basis="' + basis + '"]').addClass('active');
   }
 
   // 滴管讀值列（pinned＝釘住狀態：accent 環＋可點擊複製＋✕ 取消）
@@ -1017,6 +1048,11 @@
     $('#lightbox-families').on('click', '.lb-family', function () {
       var fam = $(this).attr('data-fam');
       if (lbActiveFam === fam) clearMask(); else showFamilyMask(fam);
+    });
+    // 遮罩基準：色票 / 分布 / 重點色（切換色票列所依的 COLOR-TYPE）
+    $('#lightbox-basis').on('click', '.lb-basis-btn', function () {
+      var b = $(this).attr('data-basis');
+      if (b !== lbBasis) setLbBasis(b);
     });
     // 釘住的讀值：點 ✕ 取消釘選；點其餘處複製 hex
     $('#lightbox-pick').on('click', function (e) {

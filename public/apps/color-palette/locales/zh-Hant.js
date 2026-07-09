@@ -107,6 +107,10 @@ I18n.register('zh-Hant', {
   'lightbox.copyHint': '點擊複製色碼',
   'lightbox.close': '關閉',
   'lightbox.fit': '縮放到符合視窗',
+  'lightbox.basis.alias': '色票',
+  'lightbox.basis.distribution': '分布',
+  'lightbox.basis.accent': '重點色',
+  'lightbox.basisEmpty': '這個基準算不出色',
   'lightbox.picker': '取色器',
   'lightbox.pickIdle': '滑過圖片取色',
 

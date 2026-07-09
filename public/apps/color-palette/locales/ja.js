@@ -107,6 +107,10 @@ I18n.register('ja', {
   'lightbox.copyHint': 'クリックで色コードをコピー',
   'lightbox.close': '閉じる',
   'lightbox.fit': 'ウィンドウに合わせる',
+  'lightbox.basis.alias': '色票',
+  'lightbox.basis.distribution': '分布',
+  'lightbox.basis.accent': '重点色',
+  'lightbox.basisEmpty': 'この基準では色が出ません',
   'lightbox.picker': 'スポイト',
   'lightbox.pickIdle': '画像にカーソルで色取得',
 

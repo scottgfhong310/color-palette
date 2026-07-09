@@ -171,6 +171,12 @@
         </span>
         <span class="lb-pal-idle" data-i18n="lightbox.pickIdle">滑過圖片取色</span>
       </div>
+      <!-- 遮罩基準：色票列＝落地色票 / 分布(ΔE≈5) / 重點色(彩度加權)，切換「對著哪個 COLOR-TYPE 遮罩」 -->
+      <div id="lightbox-basis" class="lb-basis">
+        <button type="button" class="lb-basis-btn active" data-basis="alias" data-i18n="lightbox.basis.alias">色票</button>
+        <button type="button" class="lb-basis-btn" data-basis="distribution" data-i18n="lightbox.basis.distribution">分布</button>
+        <button type="button" class="lb-basis-btn" data-basis="accent" data-i18n="lightbox.basis.accent">重點色</button>
+      </div>
       <!-- 色系遮罩：依現有色群動態產生 chip；點一下把整個色系的像素透出、其餘變暗（與單色遮罩互斥） -->
       <div id="lightbox-families" class="lb-families"></div>
       <div id="lightbox-swatches" class="lb-swatches"></div>

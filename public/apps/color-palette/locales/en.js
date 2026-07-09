@@ -107,6 +107,10 @@ I18n.register('en', {
   'lightbox.copyHint': 'Click to copy hex',
   'lightbox.close': 'Close',
   'lightbox.fit': 'Fit to window',
+  'lightbox.basis.alias': 'Swatches',
+  'lightbox.basis.distribution': 'Distribution',
+  'lightbox.basis.accent': 'Accent',
+  'lightbox.basisEmpty': 'No colours for this basis',
   'lightbox.picker': 'Color picker',
   'lightbox.pickIdle': 'Hover the image to pick',
 
