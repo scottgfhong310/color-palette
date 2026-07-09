@@ -144,7 +144,7 @@ curl localhost:3000/api/color-palette/config
 
 ### 2.6 同一句、換 provider（實例）
 
-支援兩家（`.env` 的 `LLM_PROVIDER` 選 `anthropic`／`openai`，見 §1.2）。**只改那一行、填對應金鑰、重啟**，就換一家模型潤稿——**system/user prompt 與護欄一字不改，只有「傳輸層」不同**。
+支援三家（`.env` 的 `LLM_PROVIDER` 選 `anthropic`／`openai`／`ollama`，見 §1.2）。**只改那一行、填對應金鑰（`ollama` 免、本機跑）、重啟**，就換一家模型潤稿——**system/user prompt 與護欄一字不改，只有「傳輸層」不同**。
 
 同一份**決定論草稿**（`phrase()` 產生，永遠是真相來源）：
 
@@ -157,13 +157,17 @@ curl localhost:3000/api/color-palette/config
 | **anthropic** · `claude-haiku-4-5` | 暖調的大地色系在互補配色的和諧中展開，而一抹鮮活的印度紅 ≈FC192 成為耀眼的焦點。 |
 | **openai** · `gpt-5.4` | 整體以偏暖的互補配色鋪陳出沉穩的大地色調，其間一抹小巧而鮮明的印度紅 ≈FC192 格外凝聚視線。 |
 | **openai** · `gpt-5.4-nano` | 整體偏暖、互補配色交織出大地般的沉穩色調，焦點落在一抹細小而鮮明的印度紅 ≈FC192。 |
+| **ollama** · `qwen2.5`（本機 7B） | 整體暖調、採用互補色彩，呈現溫厚大地風貌，焦點為一抹鮮豔的小印度紅（FC192）。 |
 
-**看出三件事：**
-- **都忠實**——只講顏色、一句、`≈FC192` 原樣保留（前後空格由後端 `normalizeFC` 統一）。這是共用的 system prompt＋事實護欄在管，與哪一家無關。
+> `ollama`（本機 `qwen2.5:7b` 實測）**能用、但遵守度較弱**：此例把 `≈` 去掉、改用括號寫成「（FC192）」（`normalizeFC` 只正規化既有的 `≈FC` token，不會替模型補回 `≈`）；多跑幾次還偶爾把英文事實標籤（Warm／Earthy／India Red）漏進句子、或混到簡體。想更貼近雲端的遵守度，用更大的本機模型（如 `qwen2.5:14b`）或雲端 provider。
+
+**看出幾件事：**
+- **雲端都忠實；本機看模型**——雲端三句都只講顏色、一句、`≈FC192` 原樣保留（前後空格由 `normalizeFC` 統一）。這是共用的 system prompt＋事實護欄在管。但**遵守度依模型強弱而定**：本機小模型（`qwen2.5:7b`）偶爾去掉 `≈`、漏英文標籤、混簡體（見上註）——護欄是「盡力」不是「保證」。
 - **差的只是文采**——這正是「這裡才讓主觀進場」：換 provider／model＝換一種筆觸，事實不動。
-- **切換零程式**——`callLLM()` 內兩家共用同一份 prompt，只換端點/認證/請求形狀/取回位置；換家只是 `.env` 一行 + 重啟（InProgress 3001 或獨立 repo 3000 皆然）。
+- **切換零程式**——`callLLM()` 內三家共用同一份 prompt，只換端點/認證/請求形狀/取回位置（`openai`／`ollama` 因同形狀還共用解析 `callOpenAICompat()`）；換家只是 `.env` 一行 + 重啟（InProgress 3001 或獨立 repo 3000 皆然）。
+- **`ollama` 多一個維度**——**本機、離線、免費**：金鑰都不用，潤稿不出網、不計費；代價是要自己跑 Ollama、品質依所選本機模型而定。
 
-> 註：新推理型 OpenAI 模型（`gpt-5`／`o` 系列）強制用 `max_completion_tokens`（程式已改用；見 §1.2）；否則會 400 → `llm-upstream`。
+> 註：新推理型 OpenAI 模型（`gpt-5`／`o` 系列）強制用 `max_completion_tokens`（程式已改用；見 §1.2）；`ollama` 送 `max_tokens`（映射到 `num_predict`）、逾時放寬到 60s。
 
 ---
 
