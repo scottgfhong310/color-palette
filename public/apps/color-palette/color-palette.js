@@ -730,7 +730,8 @@
   var lbDrag = null;                  // { x0, y0, tx0, ty0, moved }
   var lbColors = [];                  // 目前圖的色票 [{r,g,b,hex,...}]
   var lbSample = null;                // 離屏取樣：{ data, w, h }（getImageData）
-  var lbActiveIdx = -1;               // 目前定位中的色票 index（mask）
+  var lbActiveIdx = -1;               // 目前定位中的色票 index（單色 mask）
+  var lbActiveFam = null;            // 目前定位中的色系 key（色系 mask）；與 lbActiveIdx 互斥
   var lbPinned = null;               // 釘住的取色點 { hex, idx }：hover 是即時預覽（放大鏡），釘住的固定在頂端且可複製
 
   function applyLbView() {
@@ -760,7 +761,7 @@
     lbPinned = null; hidePick();
     var img = document.getElementById('lightbox-img');
     lbSample = null;
-    var onLoad = function () { if (img.naturalWidth) { fitLbFrame(); prepLbSample(img); } };
+    var onLoad = function () { if (img.naturalWidth) { fitLbFrame(); prepLbSample(img); buildLbFamilies(); } };
     img.onload = onLoad;
     img.src = versionedUrl(f);
     if (img.complete && img.naturalWidth) onLoad();   // 快取命中時 onload 可能不觸發
@@ -809,6 +810,31 @@
         .append($('<span class="chip">').css('background', c.hex))
         .append($info)
         .appendTo($p);
+    });
+  }
+
+  // 色系遮罩的 chip 列：掃 lbSample 統計各色系覆蓋（含中性），只列 ≥2% 者，依 FAMILY_ORDER。
+  //   點一個 chip → 該色系像素全透出、其餘變暗（Lib.familyOf 逐像素分類，與 gallery 分群同源）。
+  function buildLbFamilies() {
+    var $c = $('#lightbox-families').empty();
+    if (!lbSample) return;
+    var d = lbSample.data, counts = {}, total = 0;
+    for (var i = 0; i < d.length; i += 32) {           // 每 8 像素取樣一次（夠準、夠快）
+      var f = Lib.familyOf(d[i], d[i + 1], d[i + 2]);
+      counts[f] = (counts[f] || 0) + 1; total++;
+    }
+    if (!total) return;
+    Lib.FAMILY_ORDER.forEach(function (fam) {
+      var pct = counts[fam] ? counts[fam] / total : 0;
+      if (pct < 0.02) return;                          // 只列覆蓋 ≥2% 的色系
+      var mid = Lib.familyMidHue(fam);
+      var col = mid == null ? '#8a8a8a' : 'hsl(' + Math.round(mid) + ',52%,52%)';
+      $('<button type="button" class="lb-family">').attr('data-fam', fam)
+        .attr('title', I18n.t('family.' + fam) + ' · ' + Math.round(pct * 100) + '%')
+        .append($('<span class="lb-fam-chip">').css('background', col))
+        .append($('<span class="lb-fam-label">').text(I18n.t('family.' + fam)))
+        .toggleClass('active', lbActiveFam === fam)
+        .appendTo($c);
     });
   }
 
@@ -896,28 +922,41 @@
   }
   function hideLoupe() { document.getElementById('picker-loupe').classList.remove('show'); }
 
-  // 色塊定位：把「最近色票＝idx」的像素透出、其餘變暗（mask 疊在圖上、共用 frame transform）
-  function showMask(idx) {
-    if (!lbSample) return;
+  // 色塊定位：依 predicate（逐像素匹配）畫遮罩——匹配的像素透出、其餘變暗（mask 疊在圖上、共用 frame transform）
+  function paintMask(match) {
+    if (!lbSample) return false;
     var mask = document.getElementById('lightbox-mask');
     mask.width = lbSample.w; mask.height = lbSample.h;
     var mctx = mask.getContext('2d');
     var out = mctx.createImageData(lbSample.w, lbSample.h);
     var src = lbSample.data, od = out.data;
     for (var i = 0; i < src.length; i += 4) {
-      if (Lib.nearestSwatchIndex(src[i], src[i + 1], src[i + 2], lbColors) === idx) {
-        od[i + 3] = 0;                                   // 匹配：透明（原圖透出）
-      } else { od[i] = 8; od[i + 1] = 10; od[i + 2] = 14; od[i + 3] = 194; }  // 其餘：暗遮
+      if (match(src[i], src[i + 1], src[i + 2])) { od[i + 3] = 0; }              // 匹配：透明（原圖透出）
+      else { od[i] = 8; od[i + 1] = 10; od[i + 2] = 14; od[i + 3] = 194; }        // 其餘：暗遮
     }
     mctx.putImageData(out, 0, 0);
     mask.classList.add('show');
-    lbActiveIdx = idx;
+    return true;
+  }
+  // 單色遮罩：像素最近色票 === idx（與色系遮罩互斥）
+  function showMask(idx) {
+    if (!paintMask(function (r, g, b) { return Lib.nearestSwatchIndex(r, g, b, lbColors) === idx; })) return;
+    lbActiveIdx = idx; lbActiveFam = null;
+    $('#lightbox-families .lb-family').removeClass('active');
     $('#lightbox-palette .lb-swatch').removeClass('active').filter('[data-idx="' + idx + '"]').addClass('active');
+  }
+  // 色系遮罩：像素色系 === fam（把整個色群透出；與單色遮罩互斥）
+  function showFamilyMask(fam) {
+    if (!paintMask(function (r, g, b) { return Lib.familyOf(r, g, b) === fam; })) return;
+    lbActiveFam = fam; lbActiveIdx = -1;
+    $('#lightbox-palette .lb-swatch').removeClass('active');
+    $('#lightbox-families .lb-family').removeClass('active').filter('[data-fam="' + fam + '"]').addClass('active');
   }
   function clearMask() {
     document.getElementById('lightbox-mask').classList.remove('show');
-    lbActiveIdx = -1;
+    lbActiveIdx = -1; lbActiveFam = null;
     $('#lightbox-palette .lb-swatch').removeClass('active');
+    $('#lightbox-families .lb-family').removeClass('active');
   }
   // 游標相對舞台中心的座標（zoom-to-cursor 用）
   function lbCenterXY(e, stage) {
@@ -973,6 +1012,11 @@
     $('#lightbox-palette').on('click', '.lb-swatch', function () {
       var idx = +$(this).attr('data-idx');
       if (lbActiveIdx === idx) clearMask(); else showMask(idx);
+    });
+    // 色系 chip → 定位整個色群（再點同一個 → 取消）
+    $('#lightbox-families').on('click', '.lb-family', function () {
+      var fam = $(this).attr('data-fam');
+      if (lbActiveFam === fam) clearMask(); else showFamilyMask(fam);
     });
     // 釘住的讀值：點 ✕ 取消釘選；點其餘處複製 hex
     $('#lightbox-pick').on('click', function (e) {

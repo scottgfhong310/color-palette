@@ -401,6 +401,21 @@ body.density-compact .pcard-hint { display: none; }
 }
 .lb-pal-idle { font-size: .74rem; opacity: .6; }
 #lightbox-pick:not([hidden]) ~ .lb-pal-idle { display: none; }   /* 取到色就藏提示 */
+/* 色系遮罩 chip 列（取色頭與色票列之間）：點一個色系→整個色群定位 */
+.lb-families {
+  flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 5px;
+  padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.lb-families:empty { display: none; }
+.lb-family {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px 3px 4px; border-radius: 999px; cursor: pointer;
+  background: rgba(255,255,255,.06); border: 1px solid transparent;
+  color: rgba(255,255,255,.85); font-size: .7rem; line-height: 1;
+}
+.lb-family:hover { background: rgba(255,255,255,.12); }
+.lb-family.active { border-color: var(--accent); background: rgba(144,202,249,.22); color: #fff; }
+.lb-fam-chip { width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.3); }
 /* 色票列（可捲） */
 .lb-swatches {
   flex: 1 1 auto; min-height: 0; overflow-y: auto;

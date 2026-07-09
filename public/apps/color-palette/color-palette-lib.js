@@ -260,6 +260,13 @@
     return (a + b) / 2;
   }
 
+  // 像素 → 色系 key：achromatic（飽和 < SAT_MIN）歸 'neutral'，其餘依色相 hueFamily。
+  // 逐像素分類的單一權威（燈箱「色系遮罩」用）；與 gallery 分群同源。
+  function familyOf(r, g, b) {
+    var hsl = rgbToHsl(r, g, b);
+    return hsl[1] < SAT_MIN ? 'neutral' : hueFamily(hsl[0]);
+  }
+
   // 合併完全相同 hex 的色票（累加 ratio）：median-cut 在不等大色簇上會把純色切成多個
   // 重複盒；合併後 alias 只留「相異的主要顏色」（≤ MAX_COLORS），佔比更真實。純函式。
   function mergeDuplicates(colors) {
@@ -674,6 +681,7 @@
     FAMILY_ORDER: FAMILY_ORDER,
     hueFamily: hueFamily,
     familyMidHue: familyMidHue,
+    familyOf: familyOf,
     buildPalette: buildPalette,
     uploadFile: uploadFile,
     listFiles: listFiles,
