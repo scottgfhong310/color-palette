@@ -74,3 +74,4 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 | `data/fc-names-i18n.js`（FC 色名 zh/ja 對照，code→{zh,ja}）| `faber-castell-color`（由其 `data/source/generate.js` 從 `faber_castell_color_code_css_foreground_zh_ja.csv` 一併產生；改版重跑後同步複製，同 `fc-colors.js`）|
 
 > 為什麼長這樣（registry 決策、色相排序、canvas↔lib 邊界、mergeDuplicates）見 [DESIGN.md](DESIGN.md)。
+> **介面元素命名**（每個畫面每個元素的中文名＋程式錨點，介紹/對話用同一套詞）見 [UI-GLOSSARY.md](UI-GLOSSARY.md)。
