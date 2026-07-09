@@ -310,6 +310,7 @@ function slimFacts(f) {
 // 各家模型偶爾在全形/半形接壤處漏空格（「≈FC192格外」「鈷藍≈FC143」）——此處統一，決定論核心不受影響。
 function normalizeFC(s) {
   if (typeof s !== 'string') return s;
+  s = s.replace(/(?:大約|約|[~～])\s*FC\s*(\d+)/gi, '≈FC$1');    // 近似標記（約/大約/~/～）接 FC碼 → ≈（模型偶把 ≈ 翻成字）
   s = s.replace(/≈\s*FC\s*(\d+)/gi, '≈FC$1');                    // 收攏 token 內部空白
   s = s.replace(/(^|.)(≈FC\d+)/g, (m, before, tok) =>            // 前補空格
     (before === '' || /\s/.test(before) || before === '(' || before === '（') ? before + tok : before + ' ' + tok);
