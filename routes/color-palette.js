@@ -292,6 +292,18 @@ function slimFacts(f) {
   return Object.keys(out).length ? out : null;
 }
 
+// 潤稿出字正規化：讓 `≈FC<碼>` 前後各恰一個半形空格（除非緊鄰空白/括號/標點/行首尾）。
+// 各家模型偶爾在全形/半形接壤處漏空格（「≈FC192格外」「鈷藍≈FC143」）——此處統一，決定論核心不受影響。
+function normalizeFC(s) {
+  if (typeof s !== 'string') return s;
+  s = s.replace(/≈\s*FC\s*(\d+)/gi, '≈FC$1');                    // 收攏 token 內部空白
+  s = s.replace(/(^|.)(≈FC\d+)/g, (m, before, tok) =>            // 前補空格
+    (before === '' || /\s/.test(before) || before === '(' || before === '（') ? before + tok : before + ' ' + tok);
+  s = s.replace(/(≈FC\d+)(.?)/g, (m, tok, after) =>              // 後補空格
+    (after === '' || /\s/.test(after) || /[)）。，、．,.!?！？；;：:」』]/.test(after)) ? tok + after : tok + ' ' + after);
+  return s;
+}
+
 // GET /api/color-palette/config — 前端啟動時探詢能力（目前只有：LLM 潤稿是否可用）
 router.get('/config', (req, res) => {
   res.json({ ok: true, llm: llmEnabled() });
@@ -325,7 +337,7 @@ router.post('/polish', async (req, res) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
   try {
-    const text = await callLLM(system, user, controller.signal);
+    const text = normalizeFC(await callLLM(system, user, controller.signal));
     console.log('[color-palette] POST /polish →', LLM_PROVIDER, llmModel(), '(' + locale + ')');
     return res.json({ ok: true, text: text.slice(0, 800), model: llmModel(), provider: LLM_PROVIDER });
   } catch (err) {
