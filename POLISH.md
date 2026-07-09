@@ -37,7 +37,7 @@
 | `ANTHROPIC_API_KEY` | provider=anthropic 時要 | —（未設＝停用） | Anthropic 金鑰（`x-api-key`）。取得：<https://console.claude.com/> |
 | `ANTHROPIC_MODEL` | 否 | `claude-opus-4-8` | 短句改寫想省成本可改 `claude-haiku-4-5`。 |
 | `OPENAI_API_KEY` | provider=openai 時要 | —（未設＝停用） | OpenAI 金鑰（`Authorization: Bearer`）。取得：<https://platform.openai.com/api-keys> |
-| `OPENAI_MODEL` | 否 | `gpt-4o-mini` | 註：o1/o3 系列的上限鍵是 `max_completion_tokens`，程式目前用 `max_tokens`（適用 gpt-4o/4o-mini/4-turbo/3.5）。 |
+| `OPENAI_MODEL` | 否 | `gpt-4o-mini` | 程式用 `max_completion_tokens` 送上限，故新推理型模型（gpt-5 / o 系列，強制用它）與 gpt-4o/mini/4-turbo/3.5 都通用。 |
 | `PORT` | 否 | `3000` | 覆寫 port（家族 canon）。 |
 
 > `.env` 已列入 `.gitignore`——**金鑰永不進版控**。範本是 `.env.example`（可安全提交）。

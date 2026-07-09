@@ -252,7 +252,8 @@ async function callLLM(system, user, signal) {
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', signal,
       headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.OPENAI_API_KEY },
-      body: JSON.stringify({ model, max_tokens: 256, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] })
+      // 用 max_completion_tokens（新推理型模型如 gpt-5/o 系列強制要它、拒收 max_tokens；gpt-4o/mini 等舊模型也通用）
+      body: JSON.stringify({ model, max_completion_tokens: 256, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] })
     });
     const data = await resp.json().catch(() => null);
     if (!resp.ok || !data) throw { kind: 'upstream', msg: (data && data.error && data.error.message) || ('HTTP ' + resp.status) };
