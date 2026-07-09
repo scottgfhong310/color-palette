@@ -29,24 +29,27 @@
 
 ### 1.2 `.env` 有哪些鍵
 
-支援兩家，用 `LLM_PROVIDER` 選（**預設 `anthropic`，保持 canon**）；只需填你選的那一家的金鑰。
+支援三家，用 `LLM_PROVIDER` 選（**預設 `anthropic`，保持 canon**）；只需填你選的那一家所需的鍵。
 
 | 鍵 | 必填 | 預設 | 說明 |
 |---|---|---|---|
-| `LLM_PROVIDER` | 否 | `anthropic` | 選哪一家：`anthropic` \| `openai`。 |
+| `LLM_PROVIDER` | 否 | `anthropic` | 選哪一家：`anthropic` \| `openai` \| `ollama`。 |
 | `ANTHROPIC_API_KEY` | provider=anthropic 時要 | —（未設＝停用） | Anthropic 金鑰（`x-api-key`）。取得：<https://console.claude.com/> |
 | `ANTHROPIC_MODEL` | 否 | `claude-opus-4-8` | 短句改寫想省成本可改 `claude-haiku-4-5`。 |
 | `OPENAI_API_KEY` | provider=openai 時要 | —（未設＝停用） | OpenAI 金鑰（`Authorization: Bearer`）。取得：<https://platform.openai.com/api-keys> |
 | `OPENAI_MODEL` | 否 | `gpt-4o-mini` | 程式用 `max_completion_tokens` 送上限，故新推理型模型（gpt-5 / o 系列，強制用它）與 gpt-4o/mini/4-turbo/3.5 都通用。 |
+| `OLLAMA_BASE_URL` | 否 | `http://localhost:11434` | **本機 provider，免金鑰**。走 Ollama 的 OpenAI 相容端點 `/v1/chat/completions`；遠端才需改。 |
+| `OLLAMA_MODEL` | 否 | `llama3.2` | 用你已 `ollama pull` 的模型（如 `qwen2.5`、`gemma3`…）。 |
 | `PORT` | 否 | `3000` | 覆寫 port（家族 canon）。 |
 
 > `.env` 已列入 `.gitignore`——**金鑰永不進版控**。範本是 `.env.example`（可安全提交）。
-> `GET /config` 回 `llm:true` 的條件＝**目前選定 provider 的金鑰有設**（未設就靜默停用）。
+> `GET /config` 回 `llm:true` 的條件＝**目前選定 provider 有金鑰**（**`ollama` 免金鑰、恆視為可用**——沒跑起來則按下時才失敗）。
+> **`ollama`**：需先跑 [Ollama](https://ollama.com) 並 `ollama pull <模型>`；本機生成較慢，逾時放寬到 60s（其餘家 20s）。
 
 ### 1.3 金鑰住哪、為什麼
 
-- **只在後端**：金鑰由 Node 後端讀取、由後端呼叫 Anthropic。**瀏覽器永遠拿不到金鑰**（前端只打自家的 `/api/color-palette/polish`）。
-- **零 npm 相依**：後端用 **Node 內建 `fetch`** 直呼**所選 provider** 的 API（Anthropic Messages API 或 OpenAI Chat Completions），**不引 SDK**——維持家族「薄後端」canon。system/user 兩段 prompt 與護欄兩家共用，只有「傳輸層」（端點/認證/請求形狀/取回位置）不同。
+- **只在後端**：金鑰（若有）由 Node 後端讀取、由後端呼叫模型。**瀏覽器永遠拿不到金鑰**（前端只打自家的 `/api/color-palette/polish`）。`ollama` 是**本機**服務、更是連金鑰都沒有。
+- **零 npm 相依**：後端用 **Node 內建 `fetch`** 直呼**所選 provider**（Anthropic Messages API／OpenAI Chat Completions／Ollama 本機 OpenAI 相容端點），**不引 SDK**——維持家族「薄後端」canon。system/user 兩段 prompt 與護欄**三家共用**，只有「傳輸層」（端點/認證/請求形狀/取回位置）不同；`openai` 與 `ollama` 因同形狀還共用同一個解析函式 `callOpenAICompat()`。
 - **極簡 `.env` 載入器**：`app.js` 內建約十行的載入器（把 `.env` 補進 `process.env`，僅補未設定者），**不依賴 `dotenv`**。
   你也可以完全不用 `.env`、改在環境直接 export：`ANTHROPIC_API_KEY=sk-ant-... node app.js`。
 

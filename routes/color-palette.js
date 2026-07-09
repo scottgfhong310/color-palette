@@ -228,40 +228,54 @@ router.post('/delete', async (req, res) => {
 // ---- 選配 LLM 潤稿（opt-in；純核心仍決定論、零相依）------------------------
 // color-portrait-lib 的 phrase() 永遠是決定論、落地/報告用的來源；此端點只是「文采潤飾」——
 // 把已在地化的那一句 + 精簡事實丟給模型改寫得更漂亮。零 npm 相依：以 Node 內建 fetch 直呼 API。
-// 支援兩家（走 .env 的 LLM_PROVIDER 選，預設 anthropic 保持 canon）：
+// 支援三家（走 .env 的 LLM_PROVIDER 選，預設 anthropic 保持 canon）：
 //   anthropic：ANTHROPIC_API_KEY / ANTHROPIC_MODEL（預設 claude-opus-4-8）
 //   openai   ：OPENAI_API_KEY   / OPENAI_MODEL   （預設 gpt-4o-mini）
-// 未設對應金鑰＝整個功能靜默停用（前端據 GET /config 決定是否顯示按鈕）。
+//   ollama   ：本機 OpenAI 相容端點，免金鑰；OLLAMA_BASE_URL（預設 http://localhost:11434）/ OLLAMA_MODEL（預設 llama3.2）
+// 未設對應金鑰（ollama 免）＝整個功能靜默停用（前端據 GET /config 決定是否顯示按鈕）。
 const LLM_LOCALES = new Set(['zh-Hant', 'en', 'ja']);
 const LLM_LANG_NAME = { 'zh-Hant': 'Traditional Chinese (繁體中文)', en: 'English', ja: 'Japanese (日本語)' };
 const LLM_PROVIDER = (process.env.LLM_PROVIDER || 'anthropic').toLowerCase();
+const OLLAMA_BASE_URL = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434').replace(/\/+$/, '');
+const LLM_TIMEOUT_MS = LLM_PROVIDER === 'ollama' ? 60000 : 20000;   // 本機模型冷啟/生成較慢，放寬逾時
 
 function llmKey() { return LLM_PROVIDER === 'openai' ? process.env.OPENAI_API_KEY : process.env.ANTHROPIC_API_KEY; }
 function llmModel() {
-  return LLM_PROVIDER === 'openai'
-    ? (process.env.OPENAI_MODEL || 'gpt-4o-mini')
-    : (process.env.ANTHROPIC_MODEL || 'claude-opus-4-8');
+  if (LLM_PROVIDER === 'openai') return process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  if (LLM_PROVIDER === 'ollama') return process.env.OLLAMA_MODEL || 'llama3.2';
+  return process.env.ANTHROPIC_MODEL || 'claude-opus-4-8';
 }
-function llmEnabled() { return Boolean(llmKey()); }
+function llmEnabled() { return LLM_PROVIDER === 'ollama' ? true : Boolean(llmKey()); }   // ollama 本機免金鑰
+
+// OpenAI 相容端點（openai / ollama 共用）：回文字，或 throw { kind, msg? }。
+// Ollama 的 /v1/chat/completions 與 OpenAI 同形狀，故解析共用；差別在 base URL、認證、上限鍵（見 callLLM）。
+async function callOpenAICompat(url, apiKey, body, signal) {
+  const headers = { 'content-type': 'application/json' };
+  if (apiKey) headers.authorization = 'Bearer ' + apiKey;
+  const resp = await fetch(url, { method: 'POST', signal, headers, body: JSON.stringify(body) });
+  const data = await resp.json().catch(() => null);
+  if (!resp.ok || !data) throw { kind: 'upstream', msg: (data && data.error && (data.error.message || data.error)) || ('HTTP ' + resp.status) };
+  const choice = Array.isArray(data.choices) ? data.choices[0] : null;
+  if (choice && choice.message && choice.message.refusal) throw { kind: 'refusal' };
+  const text = choice && choice.message && typeof choice.message.content === 'string' ? choice.message.content.trim() : '';
+  if (!text) throw { kind: 'empty' };
+  return text;
+}
 
 // 呼叫選定的 provider 改寫一句；回文字，或 throw { kind:'upstream'|'refusal'|'empty', msg? }。
-// system/user 兩段字串兩家共用（同一份 prompt 與護欄）——只有「傳輸層」不同（端點/認證/請求形狀/取回位置）。
+// system/user 兩段字串三家共用（同一份 prompt 與護欄）——只有「傳輸層」不同（端點/認證/請求形狀/取回位置）。
 async function callLLM(system, user, signal) {
   const model = llmModel();
+  const msgs = [{ role: 'system', content: system }, { role: 'user', content: user }];
   if (LLM_PROVIDER === 'openai') {
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST', signal,
-      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + process.env.OPENAI_API_KEY },
-      // 用 max_completion_tokens（新推理型模型如 gpt-5/o 系列強制要它、拒收 max_tokens；gpt-4o/mini 等舊模型也通用）
-      body: JSON.stringify({ model, max_completion_tokens: 256, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] })
-    });
-    const data = await resp.json().catch(() => null);
-    if (!resp.ok || !data) throw { kind: 'upstream', msg: (data && data.error && data.error.message) || ('HTTP ' + resp.status) };
-    const choice = Array.isArray(data.choices) ? data.choices[0] : null;
-    if (choice && choice.message && choice.message.refusal) throw { kind: 'refusal' };
-    const text = choice && choice.message && typeof choice.message.content === 'string' ? choice.message.content.trim() : '';
-    if (!text) throw { kind: 'empty' };
-    return text;
+    // max_completion_tokens（新推理型模型如 gpt-5/o 系列強制要它、拒收 max_tokens；gpt-4o/mini 等舊模型也通用）
+    return callOpenAICompat('https://api.openai.com/v1/chat/completions', process.env.OPENAI_API_KEY,
+      { model, max_completion_tokens: 256, messages: msgs }, signal);
+  }
+  if (LLM_PROVIDER === 'ollama') {
+    // 本機 OpenAI 相容端點；免金鑰；Ollama 把 max_tokens 映射到 num_predict
+    return callOpenAICompat(OLLAMA_BASE_URL + '/v1/chat/completions', null,
+      { model, max_tokens: 256, messages: msgs }, signal);
   }
   // anthropic（預設）
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -335,7 +349,7 @@ router.post('/polish', async (req, res) => {
   user += '\n\nRewrite the draft as one more beautiful sentence.';
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
+  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
   try {
     const text = normalizeFC(await callLLM(system, user, controller.signal));
     console.log('[color-palette] POST /polish →', LLM_PROVIDER, llmModel(), '(' + locale + ')');
