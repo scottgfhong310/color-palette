@@ -7,6 +7,15 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <title>Color Palette</title>
 
+  <!-- App icon / favicon / PWA（設計附件；icons/ 內，一律相對路徑，獨立版與 InProgress 鏡像共用）§5.5 -->
+  <link rel="icon" href="./icons/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="./icons/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png" />
+  <link rel="manifest" href="./icons/manifest.json" />
+  <meta name="theme-color" content="#1c1a17" />
+
   <!-- 防主題閃爍：render 前先讀 localStorage 設好 data-theme 與 dark-mode/light-mode class（§5.1 坑） -->
   <script>
     try {
@@ -78,8 +87,9 @@
 
   <!-- ===== 右側工具列（flex 容器：正統版） ===== -->
   <div class="side-tools">
+    <!-- App icon 徽章（§5.5 甲）：品牌標記＋保留「上傳／加圖」動作（另有空狀態與全頁拖拉可上傳）-->
     <div id="setting-upload" class="side-tool" data-i18n-title="tool.upload" title="上傳圖片">
-      <i class="material-icons">cloud_upload</i>
+      <span class="app-icon" role="img" aria-label="color-palette"></span>
     </div>
     <div id="setting-method" class="side-tool" data-i18n-title="tool.method" title="萃取法：色族 / 頻率">
       <i class="material-icons">auto_fix_high</i>

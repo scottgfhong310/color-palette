@@ -44,6 +44,17 @@ main { min-height: 100vh; }
   padding: 28px 0 64px;
 }
 
+/* ===== App icon 徽章（§5.5 甲）：由第一顆入口鍵 #setting-upload 承載 ===== */
+/* 標記本身即圓形放大鏡＋自帶品牌色（金環／玫瑰盤），故保留圓形按鈕、用彩色 SVG 直接當
+   background（不改方形圓角、不走 mask／currentColor，雙主題皆可見、不隨主題變）。 */
+#setting-upload .app-icon {
+  display: block;
+  width: 26px;
+  height: 26px;
+  background: url('./icons/color-palette-mark.svg') center / contain no-repeat;
+  user-select: none;
+}
+
 /* ===== 空狀態（無檔案時置中） ===== */
 .empty-state {
   display: none;

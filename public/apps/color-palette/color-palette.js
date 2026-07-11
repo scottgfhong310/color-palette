@@ -1086,8 +1086,7 @@
 
     // 空狀態 / 上傳鍵 → 開檔案選擇器
     $('#empty-state, #setting-upload').on('click', function () {
-      if (this.id === 'setting-upload') setIconDone($(this));
-      picker.click();
+      picker.click();   // #setting-upload 是 app icon 徽章（§5.5 甲）＋入口鍵；不套 check 微回饋
     });
     $(picker).on('change', function () { handleFiles(this.files); this.value = ''; });
 
