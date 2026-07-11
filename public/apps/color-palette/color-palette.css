@@ -44,15 +44,25 @@ main { min-height: 100vh; }
   padding: 28px 0 64px;
 }
 
-/* ===== App icon 徽章（§5.5 甲）：由第一顆入口鍵 #setting-upload 承載 ===== */
-/* 標記本身即圓形放大鏡＋自帶品牌色（金環／玫瑰盤），故保留圓形按鈕、用彩色 SVG 直接當
-   background（不改方形圓角、不走 mask／currentColor，雙主題皆可見、不隨主題變）。 */
+/* ===== App icon 徽章（§5.5 甲變體）：由第一顆入口鍵 #setting-upload 承載 ===== */
+/* 維持 App icon 的圓角正方形 tile 設計（border-radius:22%），用完整 tile（自帶品牌色、
+   雙主題不變、免 mask/currentColor）填滿；保留 .side-tool 的 hairline border＋陰影，
+   深色下 tile 邊界才不會融進背景。 */
+#setting-upload {
+  border-radius: 22%;         /* 圓角正方形，比照 app icon tile（取代其餘按鈕的正圓） */
+  background: none;           /* tile 自帶底色，不用 .side-tool 的圓形 surface */
+  overflow: hidden;           /* tile 貼齊圓角方形邊界 */
+}
 #setting-upload .app-icon {
   display: block;
-  width: 26px;
-  height: 26px;
-  background: url('./icons/color-palette-mark.svg') center / contain no-repeat;
+  width: 100%;
+  height: 100%;
+  background: url('./icons/color-palette-icon.svg') center / cover no-repeat;
   user-select: none;
+}
+/* 第一顆是 App icon 徽章 → 與第二顆間距加倍（把「品牌」和「工具」視覺分區） */
+.side-tools > .side-tool:first-child:has(.app-icon) {
+  margin-bottom: var(--tool-gap);   /* flex gap(9px) + 9px = 18px = 加倍 */
 }
 
 /* ===== 空狀態（無檔案時置中） ===== */
