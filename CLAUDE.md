@@ -9,7 +9,7 @@
 
 ```
 app.js                              # Express 入口：port 3000；/ → 302 /apps/color-palette/
-routes/upload.js                    # POST /api/upload?folder=color-palette（共用最小版）
+routes/upload.js                    # POST /api/upload?folder=color-palette（共用最小版；含檔名消毒 sanitizeUploadName，§3.4）
 routes/color-palette.js             # GET /files、POST /alias、POST /clear（+ registry 讀寫）；GET /config、POST /polish（選配 LLM 潤稿）
 .env.example                        # 環境變數範本（ANTHROPIC_API_KEY / ANTHROPIC_MODEL 皆選配；.env 已 gitignore）
 public/apps/color-palette/          # 前端（服務於 /apps/color-palette/）
