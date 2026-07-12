@@ -38,6 +38,18 @@ function sanitizeFolder(name) {
   return trimmed;
 }
 
+// 檔名消毒：擋目錄穿越／控制字元／空值／純點名（非瀏覽器 client 可送 ../、\、控制字元）
+function sanitizeUploadName(name) {
+  if (!name || typeof name !== 'string') return null;
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  if (path.basename(trimmed) !== trimmed) return null; // 含目錄段
+  if (/^\.+$/.test(trimmed)) return null;              // . / .. / ...
+  if (/[\/\\\0]/.test(trimmed)) return null;           // 分隔字元 / null byte
+  if (/[\x00-\x1f\x7f]/.test(trimmed)) return null;    // 控制字元
+  return trimmed;
+}
+
 const storage = multer.diskStorage({
   destination: async function (req, file, cb) {
     try {
@@ -45,6 +57,7 @@ const storage = multer.diskStorage({
       const folder = custom || dateFolder();
       const uploadPath = path.join(UPLOAD_ROOT, folder);
       await fs.mkdir(uploadPath, { recursive: true });
+      req._uploadPath = uploadPath;
       cb(null, uploadPath);
     } catch (err) {
       cb(err);
@@ -54,8 +67,15 @@ const storage = multer.diskStorage({
     // 修正某些瀏覽器送來的檔名亂碼（latin1 → utf8）
     let originalName = file.originalname;
     try { originalName = Buffer.from(originalName, 'latin1').toString('utf8'); } catch (e) { /* keep */ }
+    const safeName = sanitizeUploadName(originalName);
+    if (!safeName) return cb(new Error('invalid filename'));
     const custom = sanitizeFolder(req.query.folder);
-    cb(null, custom ? originalName : timePrefix() + originalName);
+    const finalName = custom ? safeName : timePrefix() + safeName;
+    // 落點雙保險：確認最終落點仍在上傳夾內
+    const base = req._uploadPath || UPLOAD_ROOT;
+    const abs = path.join(base, finalName);
+    if (!abs.startsWith(base + path.sep)) return cb(new Error('invalid filename'));
+    cb(null, finalName);
   }
 });
 
