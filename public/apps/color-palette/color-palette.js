@@ -79,6 +79,52 @@
       + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
   }
 
+  // ---- 最接近 Caran d’Ache 色（nearestCDA；複製自 caran-dache-color，呈現比照 FC 三露出點） ----
+  var CDA = window.CaranDacheColorLib;
+  function cdaNear(hex, n) {
+    if (!CDA || !CDA.nearestCDA) return [];
+    var rgb = CDA.hexToRgb(hex); if (!rgb) return [];
+    return CDA.nearestCDA(rgb, { n: n || 1 });   // 預設排除與 PSTP 同盤的 PSTC（lib 內建）
+  }
+  // CDA 色名依語言在地化——cda-colors.js 每筆已內建 nameZh/nameJa，惰性建 seriesId|code 索引
+  var _cdaIdx = null;
+  function cdaLocalName(seriesId, code, fallback) {
+    if (!_cdaIdx && window.CDA_COLORS) {
+      _cdaIdx = {};
+      window.CDA_COLORS.forEach(function (c) { _cdaIdx[c.seriesId + '|' + c.code] = c; });
+    }
+    var c = _cdaIdx && _cdaIdx[seriesId + '|' + code];
+    if (c) {
+      if (I18n.lang === 'zh-Hant' && c.nameZh) return c.nameZh;
+      if (I18n.lang === 'ja' && c.nameJa) return c.nameJa;
+    }
+    return fallback;
+  }
+  function cdaLabel(m) { return 'CDA ' + m.seriesId + '·' + m.code; }
+  // 明細每列：主色 CDA 標籤 + 2 個替代色小片（沿用 .fc-near 樣式、加 .cda-near 供區別）
+  function cdaBadgeHtml(hex) {
+    var ms = cdaNear(hex, 3); if (!ms.length) return '';
+    var p = ms[0];
+    var alts = ms.slice(1).map(function (m) {
+      return '<span class="fc-alt" title="' + cdaLabel(m) + ' ' + _.escape(cdaLocalName(m.seriesId, m.code, m.name)) + ' · ΔE' + m.deltaE.toFixed(1) + '" style="background:' + m.hex + '"></span>';
+    }).join('');
+    return '<span class="fc-near cda-near">≈'
+      + '<span class="fc-near-chip" style="background:' + p.hex + '"></span>'
+      + '<span class="fc-near-code">' + cdaLabel(p) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(cdaLocalName(p.seriesId, p.code, p.name)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(p.band) + '">ΔE' + Math.round(p.deltaE) + '</span>'
+      + (alts ? '<span class="fc-alts">' + alts + '</span>' : '')
+      + '</span>';
+  }
+  function cdaLineHtml(hex) {
+    var m = cdaNear(hex, 1)[0]; if (!m) return '';
+    return '<span class="fc-near cda-near">≈'
+      + '<span class="fc-near-chip" style="background:' + m.hex + '"></span>'
+      + '<span class="fc-near-code">' + cdaLabel(m) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(cdaLocalName(m.seriesId, m.code, m.name)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
+  }
+
   // ---- toast / loading ---------------------------------------------------
   function toast(key, cls, params) {
     M.toast({ html: I18n.t(key, params || {}), classes: cls || 'grey' });
@@ -462,7 +508,8 @@
       .append($('<span class="detail-hex">').text(c.hex))
       .append($('<span class="detail-bar">').append($('<span>').css('width', Math.max(2, pct) + '%')))
       .append($('<span class="detail-ratio">').text(pct + '%'))
-      .append(fcBadgeHtml(c.hex));
+      .append(fcBadgeHtml(c.hex))
+      .append(cdaBadgeHtml(c.hex));
   }
   function renderDetailPalette() {
     $('#detail-tabs .detail-tab').each(function () {
@@ -586,15 +633,20 @@
     var m = fcNear(hex, 1)[0];
     return m ? ('<code>FC' + m.code + '</code> ' + mdEsc(fcLocalName(m.code, m.name)) + ' ΔE' + Math.round(m.deltaE)) : '—';
   }
+  function mdCdaCell(hex) {
+    var m = cdaNear(hex, 1)[0];
+    return m ? ('<code>' + m.seriesId + '·' + m.code + '</code> ' + mdEsc(cdaLocalName(m.seriesId, m.code, m.name)) + ' ΔE' + Math.round(m.deltaE)) : '—';
+  }
   // 一段色票表（含表頭）；每列 break-inside:avoid＝跨頁時列不被切一半，thead 預設每頁重印
   function mdTableHtml(colors) {
     var rows = colors.map(function (c) {
       var pct = Math.round((c.ratio || 0) * 100) + '%';
       return '<tr style="break-inside:avoid;page-break-inside:avoid"><td>' + mdSwatchSvg(c.hex) +
-             '</td><td><code>' + c.hex.toUpperCase() + '</code></td><td>' + pct + '</td><td>' + mdFcCell(c.hex) + '</td></tr>';
+             '</td><td><code>' + c.hex.toUpperCase() + '</code></td><td>' + pct + '</td><td>' + mdFcCell(c.hex) +
+             '</td><td>' + mdCdaCell(c.hex) + '</td></tr>';
     }).join('');
     return '<table style="width:100%"><thead><tr><th></th><th>Hex</th><th>' + mdEsc(I18n.t('md.ratio')) +
-           '</th><th>&#8776; Faber-Castell</th></tr></thead><tbody>' + rows + '</tbody></table>';
+           '</th><th>&#8776; Faber-Castell</th><th>&#8776; Caran d&#8217;Ache</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
   // 總覽比例色帶：單一 SVG，寬 100%，各色寬度依 ratio（正規化到顯示總和填滿）；SVG＝前景，必印
   //   h＝顯示高度（px）；viewBox 高固定 10、preserveAspectRatio none → 垂直拉伸到 h（色塊等比變高）
@@ -879,7 +931,7 @@
     $p.find('.lightbox-pick-hex').text(hex);
     var $fc = $p.find('.lightbox-pick-fc');
     if (!$fc.length) $fc = $('<span class="lightbox-pick-fc">').appendTo($p);
-    $fc.html(fcLineHtml(hex));
+    $fc.html(fcLineHtml(hex) + cdaLineHtml(hex));
   }
   function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('pinned').attr('title', ''); setHotSwatch(-1); }
   // 釘住游標所在點的顏色（hover 是即時預覽；釘住的固定在頂端供比對／複製）
@@ -944,8 +996,9 @@
     ctx.strokeRect(half * cell + 0.5, half * cell + 0.5, cell - 1, cell - 1);
     ctx.strokeStyle = 'rgba(255,255,255,.95)';
     ctx.strokeRect(half * cell - 0.5, half * cell - 0.5, cell + 1, cell + 1);
-    document.getElementById('loupe-hex').innerHTML = s.hex + '<span class="loupe-fc">' + fcLineHtml(s.hex) + '</span>';
-    var lw = 150, lh = 176, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向
+    document.getElementById('loupe-hex').innerHTML = s.hex + '<span class="loupe-fc">' + fcLineHtml(s.hex) + '</span>'
+      + '<span class="loupe-fc">' + cdaLineHtml(s.hex) + '</span>';
+    var lw = 150, lh = 192, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向（+16：CDA 第二行）
     if (left + lw > window.innerWidth) left = cx - 20 - lw;
     if (top + lh > window.innerHeight) top = cy - 20 - lh;
     var el = document.getElementById('picker-loupe');

@@ -554,6 +554,7 @@ body.density-compact .pcard-hint { display: none; }
 .detail-list .fc-near { flex-basis: 100%; margin-left: 36px; margin-top: 1px; }   /* 26 chip + 10 gap */
 /* 燈箱取色列與放大鏡的 FC 行 */
 .lightbox-pick-fc, .loupe-fc { display: inline-flex; }
+.lightbox-pick-fc { flex-wrap: wrap; min-width: 0; }   /* FC＋CDA 兩條可換行（inline-flex 預設不換） */
 .loupe-fc .fc-near { color: rgba(255,255,255,.8); }
 /* header 取色讀值：≈FC 排到第二行、不撐破欄寬（修頂端截斷） */
 .lightbox-pick-fc { flex-basis: 100%; min-width: 0; overflow: hidden; }
