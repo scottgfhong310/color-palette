@@ -420,7 +420,9 @@ body.density-compact .pcard-hint { display: none; }
 /* 取色器頭：colorize icon + 目前取得的顏色（由左下角移來） */
 .lb-pal-head {
   flex: 0 0 auto;
-  display: flex; align-items: center; gap: 8px; min-height: 40px;
+  /* 定高（含取色三行：hex＋FC＋CDA）：idle／hover／釘住高度一致，
+     下方色塊區不因取消釘選或游標離圖而上移（點擊跳動修正） */
+  display: flex; align-items: center; gap: 8px; min-height: 74px;
   padding: 9px 12px; color: #fff;
   border-bottom: 1px solid rgba(255,255,255,.10);
 }
@@ -467,7 +469,7 @@ body.density-compact .pcard-hint { display: none; }
   width: 28px; height: 28px; border-radius: 6px; flex: 0 0 auto;
   border: 1px solid rgba(255,255,255,.28);
 }
-/* 每列兩行：上＝hex + 佔比%；下＝≈最接近 FC 色鉛 */
+/* 每列三行：上＝hex + 佔比%；下＝≈最接近 FC 色鉛、≈最接近 CDA 色鉛（.lb-sw-cda 沿用同組樣式） */
 .lb-sw-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .lb-sw-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
 .lb-sw-hex {
@@ -554,7 +556,7 @@ body.density-compact .pcard-hint { display: none; }
 .detail-list .fc-near { flex-basis: 100%; margin-left: 36px; margin-top: 1px; }   /* 26 chip + 10 gap */
 /* 燈箱取色列與放大鏡的 FC 行 */
 .lightbox-pick-fc, .loupe-fc { display: inline-flex; }
-.lightbox-pick-fc { flex-wrap: wrap; min-width: 0; }   /* FC＋CDA 兩條可換行（inline-flex 預設不換） */
+.lightbox-pick-fc { flex-direction: column; align-items: flex-start; row-gap: 1px; min-width: 0; }   /* FC＋CDA 恆各一行：高度確定，頭部才能定高不跳 */
 .loupe-fc .fc-near { color: rgba(255,255,255,.8); }
 /* header 取色讀值：≈FC 排到第二行、不撐破欄寬（修頂端截斷） */
 .lightbox-pick-fc { flex-basis: 100%; min-width: 0; overflow: hidden; }

@@ -872,6 +872,15 @@
           .append($('<span class="lb-sw-fcname">').text(m.name))
           .appendTo($info);
       }
+      var mc = cdaNear(c.hex, 1)[0]; // 最接近的 Caran d’Ache 色（比照 FC 列，沿用同組樣式）
+      if (mc) {
+        $('<div class="lb-sw-fc lb-sw-cda">')
+          .attr('title', cdaLabel(mc) + ' ' + cdaLocalName(mc.seriesId, mc.code, mc.name) + ' · ΔE' + mc.deltaE.toFixed(1))
+          .append($('<span class="lb-sw-fcchip">').css('background', mc.hex))
+          .append($('<span class="lb-sw-fccode">').text(cdaLabel(mc)))
+          .append($('<span class="lb-sw-fcname">').text(cdaLocalName(mc.seriesId, mc.code, mc.name)))
+          .appendTo($info);
+      }
       $('<div class="lb-swatch">').attr('data-idx', i).attr('title', c.hex)
         .append($('<span class="chip">').css('background', c.hex))
         .append($info)
