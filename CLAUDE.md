@@ -73,6 +73,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 | `faber-castell-color-lib.js` ＋ `data/fc-colors.js` | `faber-castell-color`（最接近 FC 色比對；改版重跑其產生器後同步複製） |
 | `caran-dache-color-lib.js` ＋ `data/cda-colors.js` | `caran-dache-color`（最接近 Caran d’Ache 色比對 `nearestCDA`；改版重跑其產生器後同步複製） |
 | `data/fc-names-i18n.js`（FC 色名 zh/ja 對照，code→{zh,ja}）| `faber-castell-color`（由其 `data/source/generate.js` 從 `faber_castell_color_code_css_foreground_zh_ja.csv` 一併產生；改版重跑後同步複製，同 `fc-colors.js`）|
+| `icons/` | **本 app 自有**品牌圖（「彩色圓標記」，家族 §5.5 甲變體的範例），非沿用他 app；改圖只需動這裡。`favicon.ico` 由家族 `nodeapp-webapp-family/tools/make-ico.sh` 從本 app 的 `favicon.svg` 產（16/32/48、內嵌 PNG） |
 
 > 為什麼長這樣（registry 決策、色相排序、canvas↔lib 邊界、mergeDuplicates）見 [DESIGN.md](DESIGN.md)。
 > **介面元素命名**（每個畫面每個元素的中文名＋程式錨點，介紹/對話用同一套詞）見 [UI-GLOSSARY.md](UI-GLOSSARY.md)。
