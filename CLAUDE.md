@@ -68,7 +68,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 |---|---|
 | `materialize-dark.css` | 家族 repo `nodeapp-webapp-family/materialize-dark.css` |
 | `side-tool.css`、`side-tool.js`（正統 flex 版＋共用 setIconDone）| 家族 repo `nodeapp-webapp-family/side-tool.{css,js}`（§5.5 權威版，byte-identical） |
-| `i18n.js` | 家族共用（`markdown-reader` 等同款引擎） |
+| `i18n.js` | 家族 repo `nodeapp-webapp-family/i18n.js`（權威版，byte-identical；`locales/*.js` 各 app 自維護） |
 | `color-palette-lib.js` 的 `extractPalette` | 移植自 `thangka-trace-lib.js`（median-cut / frequency 核心） |
 | `faber-castell-color-lib.js` ＋ `data/fc-colors.js` | `faber-castell-color`（最接近 FC 色比對；改版重跑其產生器後同步複製） |
 | `caran-dache-color-lib.js` ＋ `data/cda-colors.js` | `caran-dache-color`（最接近 Caran d’Ache 色比對 `nearestCDA`；改版重跑其產生器後同步複製） |
