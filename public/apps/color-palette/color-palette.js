@@ -140,12 +140,8 @@
   }
 
   // 側鍵「已執行」微回饋：icon 暫時變 check（#setting-mode 等狀態鍵不套）
-  function setIconDone($tool) {
-    var $i = $tool.find('i.material-icons');
-    var orig = $i.text();
-    $i.text('check');
-    setTimeout(function () { $i.text(orig); }, 800);
-  }
+  // 家族共用 side-tool.js（§5.5）；吃 jQuery 物件／DOM 元素／id 字串皆可
+  var setIconDone = window.SideTool.setIconDone;
 
   // ---- 顏色分析（canvas；DOM 工作留控制器） ------------------------------
   // 載入圖片、縮圖到 ANALYZE_MAX、讀像素、交給 lib 萃取 → 回 Palette

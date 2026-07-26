@@ -15,7 +15,7 @@ routes/color-palette.js             # GET /files、POST /alias、POST /clear（+
 public/apps/color-palette/          # 前端（服務於 /apps/color-palette/）
 ├─ index.html · color-palette.css · color-palette.js · color-palette-lib.js
 ├─ color-portrait-lib.js             # 五構面 → 一句色彩描述（純函式、零相依；家族共用候選）
-├─ materialize-dark.css · side-tool.css · i18n.js · locales/{zh-Hant,en,ja}.js
+├─ materialize-dark.css · side-tool.{css,js} · i18n.js · locales/{zh-Hant,en,ja}.js
 public/upload/color-palette/        # 上傳圖片 + .registry.json（內容不進版控）
 ```
 
@@ -67,7 +67,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 | 檔案 | 來源（以此為準） |
 |---|---|
 | `materialize-dark.css` | 家族 repo `nodeapp-webapp-family/materialize-dark.css` |
-| `side-tool.css`（正統 flex 版）| `thangka-trace/side-tool.css`（同家族 §5.5 正統版） |
+| `side-tool.css`、`side-tool.js`（正統 flex 版＋共用 setIconDone）| 家族 repo `nodeapp-webapp-family/side-tool.{css,js}`（§5.5 權威版，byte-identical） |
 | `i18n.js` | 家族共用（`markdown-reader` 等同款引擎） |
 | `color-palette-lib.js` 的 `extractPalette` | 移植自 `thangka-trace-lib.js`（median-cut / frequency 核心） |
 | `faber-castell-color-lib.js` ＋ `data/fc-colors.js` | `faber-castell-color`（最接近 FC 色比對；改版重跑其產生器後同步複製） |
