@@ -1,6 +1,7 @@
-/* Caran d’Ache series colours — generated (do not hand-edit).
- * Source: Caran_dAche_Master_Color_Index_v1.0.xlsx (Series_Color_Index).
- * One row per colour-in-a-series (812 rows across 8 series).
+/* Caran d’Ache series colours — build artefact, do not hand-edit.
+ * Exported from the family colour database (db_artcolor), the System of Record since 2026-07-29;
+ * upstream provenance is Caran_dAche_Master_Color_Index_v1.1.0.xlsx (Series_Color_Index), frozen.
+ * One row per colour-in-a-series (812 rows across 9 series).
  * Fields: id, seriesId, code, order, name/nameZh/nameJa, hex, r/g/b,
  *   lf/lfNorm/lfMax/lfStd, pig/pigN, wcag, contrast, canon, cssVar.
  * hex = median RGB sampled from official PDF swatches, approximate (not official).
