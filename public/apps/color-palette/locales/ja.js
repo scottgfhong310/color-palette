@@ -123,9 +123,9 @@ I18n.register('ja', {
   'toast.method': '抽出方式：{m}',
   'toast.reanalyzed': '{n} 枚を再解析しました',
   'toast.noFiles': '解析できる画像がありません',
-  'toast.cleared': '{n} 件を削除しました',
+  'toast.cleared': '{n} 件のファイルを削除しました',
   'toast.clearFail': '削除に失敗：{m}',
-  'toast.listFail': 'リストの読み込みに失敗：{m}',
+  'toast.listFail': 'ファイル一覧の取得に失敗：{m}',
 
   'confirm.clear': '/upload/color-palette 内のすべての画像とパレットを削除しますか？この操作は取り消せません。'
 }, '日本語');

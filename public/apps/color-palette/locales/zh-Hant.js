@@ -125,7 +125,7 @@ I18n.register('zh-Hant', {
   'toast.noFiles': '尚無圖片可分析',
   'toast.cleared': '已清空 {n} 個檔案',
   'toast.clearFail': '清空失敗：{m}',
-  'toast.listFail': '讀取清單失敗：{m}',
+  'toast.listFail': '讀取檔案清單失敗：{m}',
 
   'confirm.clear': '確定要清空 /upload/color-palette 下的所有圖片與色票嗎？此動作無法復原。'
 }, '繁體中文');

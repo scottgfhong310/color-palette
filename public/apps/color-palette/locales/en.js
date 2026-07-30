@@ -125,7 +125,7 @@ I18n.register('en', {
   'toast.noFiles': 'No images to analyze yet',
   'toast.cleared': 'Cleared {n} file(s)',
   'toast.clearFail': 'Clear failed: {m}',
-  'toast.listFail': 'Failed to load list: {m}',
+  'toast.listFail': 'Failed to load file list: {m}',
 
   'confirm.clear': 'Clear all images and palettes under /upload/color-palette? This cannot be undone.'
 }, 'English');
