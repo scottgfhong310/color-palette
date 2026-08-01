@@ -72,6 +72,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 | `color-palette-lib.js` 的 `extractPalette` | 移植自 `thangka-trace-lib.js`（median-cut / frequency 核心） |
 | `faber-castell-color-lib.js` ＋ `data/fc-colors.js` | `faber-castell-color`（最接近 FC 色比對；改版重跑其產生器後同步複製） |
 | `caran-dache-color-lib.js` ＋ `data/cda-colors.js` | `caran-dache-color`（最接近 Caran d’Ache 色比對 `nearestCDA`；改版重跑其產生器後同步複製） |
+| `copic-color-lib.js` ＋ `data/copic-colors.js` | `copic-color`（最接近 COPIC 色比對 `nearestCOPIC`；**預設排除 0 號無色調和筆**——它沒有顏料，畫不出任何顏色。改版跑該 repo 的 `scripts/sync-copies.sh` 同步） |
 | `finecolour-color-lib.js` ＋ `data/finecolour-colors.js` | `finecolour-color`（最接近 Finecolour 色比對 `nearestFinecolour`；**預設只比麥克筆 480 色、且排除 0 號無色調和筆**——彩針筆是水性針管筆、調和筆沒有顏料，兩者都不該出現在「該用哪支筆」的答案裡。改版跑該 repo 的 `scripts/sync-copies.sh` 同步） |
 | `data/fc-names-i18n.js`（FC 色名 zh/ja 對照，code→{zh,ja}）| `faber-castell-color`（由其 `data/source/generate.js` 從 `faber_castell_color_code_css_foreground_zh_ja.csv` 一併產生；改版重跑後同步複製，同 `fc-colors.js`）|
 | `icons/` | **本 app 自有**品牌圖（「彩色圓標記」，家族 §5.5 甲變體的範例），非沿用他 app；改圖只需動這裡。`favicon.ico` 由家族 `nodeapp-webapp-family/tools/make-ico.sh` 從本 app 的 `favicon.svg` 產（16/32/48、內嵌 PNG） |

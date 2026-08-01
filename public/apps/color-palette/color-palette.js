@@ -125,6 +125,52 @@
       + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
   }
 
+  // ---- 最接近 COPIC 色（nearestCOPIC；複製自 copic-color，呈現比照 FC／CDA） ----
+  var CPC = window.CopicColorLib;
+  function cpcNear(hex, n) {
+    if (!CPC || !CPC.nearestCOPIC) return [];
+    var rgb = CPC.hexToRgb(hex); if (!rgb) return [];
+    // 預設排除 0 號無色調和筆（lib 內建）——它沒有顏料，畫不出任何顏色
+    return CPC.nearestCOPIC(rgb, { n: n || 1 });
+  }
+  // COPIC 色名依語言在地化——copic-colors.js 每筆已內建 nameZh/nameJa，惰性建索引
+  var _cpcIdx = null;
+  function cpcLocalName(code, fallback) {
+    if (!_cpcIdx && window.COPIC_COLORS) {
+      _cpcIdx = {};
+      window.COPIC_COLORS.forEach(function (c) { _cpcIdx[c.code] = c; });
+    }
+    var c = _cpcIdx && _cpcIdx[code];
+    if (c) {
+      if (I18n.lang === 'zh-Hant' && c.nameZh) return c.nameZh;
+      if (I18n.lang === 'ja' && c.nameJa) return c.nameJa;
+    }
+    return fallback;
+  }
+  function cpcLabel(m) { return 'COPIC ' + m.code; }
+  function cpcBadgeHtml(hex) {
+    var ms = cpcNear(hex, 3); if (!ms.length) return '';
+    var p = ms[0];
+    var alts = ms.slice(1).map(function (m) {
+      return '<span class="fc-alt" title="' + cpcLabel(m) + ' ' + _.escape(cpcLocalName(m.code, m.name)) + ' · ΔE' + m.deltaE.toFixed(1) + '" style="background:' + m.hex + '"></span>';
+    }).join('');
+    return '<span class="fc-near cpc-near">≈'
+      + '<span class="fc-near-chip" style="background:' + p.hex + '"></span>'
+      + '<span class="fc-near-code">' + cpcLabel(p) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(cpcLocalName(p.code, p.name)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(p.band) + '">ΔE' + Math.round(p.deltaE) + '</span>'
+      + (alts ? '<span class="fc-alts">' + alts + '</span>' : '')
+      + '</span>';
+  }
+  function cpcLineHtml(hex) {
+    var m = cpcNear(hex, 1)[0]; if (!m) return '';
+    return '<span class="fc-near cpc-near">≈'
+      + '<span class="fc-near-chip" style="background:' + m.hex + '"></span>'
+      + '<span class="fc-near-code">' + cpcLabel(m) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(cpcLocalName(m.code, m.name)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
+  }
+
   // ---- 最接近 Finecolour 色（nearestFinecolour；複製自 finecolour-color，呈現比照 FC／CDA） ----
   var FCL = window.FinecolourColorLib;
   function fclNear(hex, n) {
@@ -555,6 +601,7 @@
       .append($('<span class="detail-ratio">').text(pct + '%'))
       .append(fcBadgeHtml(c.hex))
       .append(cdaBadgeHtml(c.hex))
+      .append(cpcBadgeHtml(c.hex))
       .append(fclBadgeHtml(c.hex));
   }
   function renderDetailPalette() {
@@ -986,7 +1033,7 @@
     $p.find('.lightbox-pick-hex').text(hex);
     var $fc = $p.find('.lightbox-pick-fc');
     if (!$fc.length) $fc = $('<span class="lightbox-pick-fc">').appendTo($p);
-    $fc.html(fcLineHtml(hex) + cdaLineHtml(hex) + fclLineHtml(hex));
+    $fc.html(fcLineHtml(hex) + cdaLineHtml(hex) + cpcLineHtml(hex) + fclLineHtml(hex));
   }
   function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('pinned').attr('title', ''); setHotSwatch(-1); }
   // 釘住游標所在點的顏色（hover 是即時預覽；釘住的固定在頂端供比對／複製）
@@ -1053,6 +1100,7 @@
     ctx.strokeRect(half * cell - 0.5, half * cell - 0.5, cell + 1, cell + 1);
     document.getElementById('loupe-hex').innerHTML = s.hex + '<span class="loupe-fc">' + fcLineHtml(s.hex) + '</span>'
       + '<span class="loupe-fc">' + cdaLineHtml(s.hex) + '</span>'
+      + '<span class="loupe-fc">' + cpcLineHtml(s.hex) + '</span>'
       + '<span class="loupe-fc">' + fclLineHtml(s.hex) + '</span>';
     var lw = 150, lh = 192, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向（+16：CDA 第二行）
     if (left + lw > window.innerWidth) left = cx - 20 - lw;

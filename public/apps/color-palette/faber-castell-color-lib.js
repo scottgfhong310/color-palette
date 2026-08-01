@@ -49,7 +49,9 @@
     if (!q) return colors.slice();
     return colors.filter(function (c) {
       return c.code.toLowerCase().indexOf(q) !== -1 ||
-             c.name.toLowerCase().indexOf(q) !== -1;
+             c.name.toLowerCase().indexOf(q) !== -1 ||
+             (c.nameZh && c.nameZh.toLowerCase().indexOf(q) !== -1) ||
+             (c.nameJa && c.nameJa.toLowerCase().indexOf(q) !== -1);
     });
   }
 
