@@ -125,6 +125,55 @@
       + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
   }
 
+  // ---- 最接近 Finecolour 色（nearestFinecolour；複製自 finecolour-color，呈現比照 FC／CDA） ----
+  var FCL = window.FinecolourColorLib;
+  function fclNear(hex, n) {
+    if (!FCL || !FCL.nearestFinecolour) return [];
+    var rgb = FCL.hexToRgb(hex); if (!rgb) return [];
+    // 預設 space:'marker'（lib 內建）——彩針筆是水性針管筆，不該混進「該用哪支麥克筆」的答案
+    return FCL.nearestFinecolour(rgb, { n: n || 1 });
+  }
+  // Finecolour 色名依語言在地化。**主名不一定是英文**——麥克筆色譜是英文的、
+  // 彩針筆是中文的，故一律走 lib 的 officialName()／localName()，不可直接讀 .name。
+  // 這裡比對的是麥克筆，官方名是英文，所以 zh/ja 時取譯名、否則用官方名。
+  var _fclIdx = null;
+  function fclColor(code) {
+    if (!_fclIdx && window.FINECOLOUR_COLORS) {
+      _fclIdx = {};
+      window.FINECOLOUR_COLORS.forEach(function (c) { _fclIdx[c.code] = c; });
+    }
+    return _fclIdx && _fclIdx[code];
+  }
+  function fclLocalName(code, fallback) {
+    var c = fclColor(code);
+    if (!c) return fallback;
+    return FCL.localName(c, I18n.lang) || FCL.officialName(c) || fallback;
+  }
+  function fclLabel(m) { return 'FCL ' + m.code; }
+  // 明細每列：主色 Finecolour 標籤 + 2 個替代色小片（沿用 .fc-near 樣式、加 .fcl-near 供區別）
+  function fclBadgeHtml(hex) {
+    var ms = fclNear(hex, 3); if (!ms.length) return '';
+    var p = ms[0];
+    var alts = ms.slice(1).map(function (m) {
+      return '<span class="fc-alt" title="' + fclLabel(m) + ' ' + _.escape(fclLocalName(m.code, m.name)) + ' · ΔE' + m.deltaE.toFixed(1) + '" style="background:' + m.hex + '"></span>';
+    }).join('');
+    return '<span class="fc-near fcl-near">≈'
+      + '<span class="fc-near-chip" style="background:' + p.hex + '"></span>'
+      + '<span class="fc-near-code">' + fclLabel(p) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(fclLocalName(p.code, p.name)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(p.band) + '">ΔE' + Math.round(p.deltaE) + '</span>'
+      + (alts ? '<span class="fc-alts">' + alts + '</span>' : '')
+      + '</span>';
+  }
+  function fclLineHtml(hex) {
+    var m = fclNear(hex, 1)[0]; if (!m) return '';
+    return '<span class="fc-near fcl-near">≈'
+      + '<span class="fc-near-chip" style="background:' + m.hex + '"></span>'
+      + '<span class="fc-near-code">' + fclLabel(m) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(fclLocalName(m.code, m.name)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
+  }
+
   // ---- toast / loading ---------------------------------------------------
   function toast(key, cls, params) {
     M.toast({ html: I18n.t(key, params || {}), classes: cls || 'grey' });
@@ -505,7 +554,8 @@
       .append($('<span class="detail-bar">').append($('<span>').css('width', Math.max(2, pct) + '%')))
       .append($('<span class="detail-ratio">').text(pct + '%'))
       .append(fcBadgeHtml(c.hex))
-      .append(cdaBadgeHtml(c.hex));
+      .append(cdaBadgeHtml(c.hex))
+      .append(fclBadgeHtml(c.hex));
   }
   function renderDetailPalette() {
     $('#detail-tabs .detail-tab').each(function () {
@@ -936,7 +986,7 @@
     $p.find('.lightbox-pick-hex').text(hex);
     var $fc = $p.find('.lightbox-pick-fc');
     if (!$fc.length) $fc = $('<span class="lightbox-pick-fc">').appendTo($p);
-    $fc.html(fcLineHtml(hex) + cdaLineHtml(hex));
+    $fc.html(fcLineHtml(hex) + cdaLineHtml(hex) + fclLineHtml(hex));
   }
   function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('pinned').attr('title', ''); setHotSwatch(-1); }
   // 釘住游標所在點的顏色（hover 是即時預覽；釘住的固定在頂端供比對／複製）
@@ -1002,7 +1052,8 @@
     ctx.strokeStyle = 'rgba(255,255,255,.95)';
     ctx.strokeRect(half * cell - 0.5, half * cell - 0.5, cell + 1, cell + 1);
     document.getElementById('loupe-hex').innerHTML = s.hex + '<span class="loupe-fc">' + fcLineHtml(s.hex) + '</span>'
-      + '<span class="loupe-fc">' + cdaLineHtml(s.hex) + '</span>';
+      + '<span class="loupe-fc">' + cdaLineHtml(s.hex) + '</span>'
+      + '<span class="loupe-fc">' + fclLineHtml(s.hex) + '</span>';
     var lw = 150, lh = 192, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向（+16：CDA 第二行）
     if (left + lw > window.innerWidth) left = cx - 20 - lw;
     if (top + lh > window.innerHeight) top = cy - 20 - lh;
