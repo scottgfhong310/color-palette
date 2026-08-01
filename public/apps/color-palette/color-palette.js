@@ -220,6 +220,44 @@
       + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">ΔE' + Math.round(m.deltaE) + '</span></span>';
   }
 
+  // ---- 最接近 ENMY 色（nearestENMY；複製自 enmy-color，呈現比照 FC／CDA） ----
+  // ⚠️ **ENMY 不發佈色名**。所以「名字」那一格放的不是色名，而是 lib 的 displayName()
+  // 給的替代標示（隨盒色卡的中文標示，僅 4 個膚色有；否則官方色系名）。
+  // 恆非空——留白會被讀成資料掉了，而事實是原廠只以色號識別。
+  // 主識別一律是**色碼**（§6.2 在這個品牌的樣子）。
+  var ENL = window.EnmyColorLib;
+  function enNear(hex, n) {
+    if (!ENL || !ENL.nearestENMY) return [];
+    var rgb = ENL.hexToRgb(hex); if (!rgb || isNaN(rgb.r)) return [];
+    // 不限定套組：這裡回答的是「ENMY 哪支筆最接近」，不是「我那盒裡哪支最接近」。
+    // 要限定手上那盒請用 enmy-color 的側欄（opts.set）。
+    return ENL.nearestENMY(rgb, { n: n || 1 });
+  }
+  function enName(m) { return ENL ? ENL.displayName(m, window.I18n && I18n.lang) : ''; }
+  function enLabel(m) { return 'ENMY ' + m.code; }
+  function enBadgeHtml(hex) {
+    var ms = enNear(hex, 3); if (!ms.length) return '';
+    var p = ms[0];
+    var alts = ms.slice(1).map(function (m) {
+      return '<span class="fc-alt" title="' + enLabel(m) + ' ' + _.escape(enName(m)) + ' \u00b7 \u0394E' + m.deltaE.toFixed(1) + '" style="background:' + m.hex + '"></span>';
+    }).join('');
+    return '<span class="fc-near enmy-near">\u2248'
+      + '<span class="fc-near-chip" style="background:' + p.hex + '"></span>'
+      + '<span class="fc-near-code">' + enLabel(p) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(enName(p)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(p.band) + '">\u0394E' + Math.round(p.deltaE) + '</span>'
+      + (alts ? '<span class="fc-alts">' + alts + '</span>' : '')
+      + '</span>';
+  }
+  function enLineHtml(hex) {
+    var m = enNear(hex, 1)[0]; if (!m) return '';
+    return '<span class="fc-near enmy-near">\u2248'
+      + '<span class="fc-near-chip" style="background:' + m.hex + '"></span>'
+      + '<span class="fc-near-code">' + enLabel(m) + '</span>'
+      + '<span class="fc-near-name">' + _.escape(enName(m)) + '</span>'
+      + '<span class="fc-near-de" style="color:' + fcBand(m.band) + '">\u0394E' + Math.round(m.deltaE) + '</span></span>';
+  }
+
   // ---- toast / loading ---------------------------------------------------
   function toast(key, cls, params) {
     M.toast({ html: I18n.t(key, params || {}), classes: cls || 'grey' });
@@ -602,7 +640,8 @@
       .append(fcBadgeHtml(c.hex))
       .append(cdaBadgeHtml(c.hex))
       .append(cpcBadgeHtml(c.hex))
-      .append(fclBadgeHtml(c.hex));
+      .append(fclBadgeHtml(c.hex))
+      .append(enBadgeHtml(c.hex));
   }
   function renderDetailPalette() {
     $('#detail-tabs .detail-tab').each(function () {
@@ -1033,7 +1072,7 @@
     $p.find('.lightbox-pick-hex').text(hex);
     var $fc = $p.find('.lightbox-pick-fc');
     if (!$fc.length) $fc = $('<span class="lightbox-pick-fc">').appendTo($p);
-    $fc.html(fcLineHtml(hex) + cdaLineHtml(hex) + cpcLineHtml(hex) + fclLineHtml(hex));
+    $fc.html(fcLineHtml(hex) + cdaLineHtml(hex) + cpcLineHtml(hex) + fclLineHtml(hex) + enLineHtml(hex));
   }
   function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('pinned').attr('title', ''); setHotSwatch(-1); }
   // 釘住游標所在點的顏色（hover 是即時預覽；釘住的固定在頂端供比對／複製）
@@ -1101,8 +1140,9 @@
     document.getElementById('loupe-hex').innerHTML = s.hex + '<span class="loupe-fc">' + fcLineHtml(s.hex) + '</span>'
       + '<span class="loupe-fc">' + cdaLineHtml(s.hex) + '</span>'
       + '<span class="loupe-fc">' + cpcLineHtml(s.hex) + '</span>'
-      + '<span class="loupe-fc">' + fclLineHtml(s.hex) + '</span>';
-    var lw = 150, lh = 192, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向（+16：CDA 第二行）
+      + '<span class="loupe-fc">' + fclLineHtml(s.hex) + '</span>'
+      + '<span class="loupe-fc">' + enLineHtml(s.hex) + '</span>';
+    var lw = 150, lh = 208, left = cx + 20, top = cy + 20;   // 跟隨游標、近邊翻向（每多一個品牌一行 +16；現為 5 行）
     if (left + lw > window.innerWidth) left = cx - 20 - lw;
     if (top + lh > window.innerHeight) top = cy - 20 - lh;
     var el = document.getElementById('picker-loupe');

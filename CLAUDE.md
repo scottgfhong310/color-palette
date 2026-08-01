@@ -74,6 +74,7 @@ npm install && node app.js          # → http://localhost:3000/apps/color-palet
 | `caran-dache-color-lib.js` ＋ `data/cda-colors.js` | `caran-dache-color`（最接近 Caran d’Ache 色比對 `nearestCDA`；改版重跑其產生器後同步複製） |
 | `copic-color-lib.js` ＋ `data/copic-colors.js` | `copic-color`（最接近 COPIC 色比對 `nearestCOPIC`；**預設排除 0 號無色調和筆**——它沒有顏料，畫不出任何顏色。改版跑該 repo 的 `scripts/sync-copies.sh` 同步） |
 | `finecolour-color-lib.js` ＋ `data/finecolour-colors.js` | `finecolour-color`（最接近 Finecolour 色比對 `nearestFinecolour`；**預設只比麥克筆 480 色、且排除 0 號無色調和筆**——彩針筆是水性針管筆、調和筆沒有顏料，兩者都不該出現在「該用哪支筆」的答案裡。改版跑該 repo 的 `scripts/sync-copies.sh` 同步） |
+| `enmy-color-lib.js` ＋ `data/enmy-colors.js` | `enmy-color`（最接近 ENMY 色比對 `nearestENMY`；**ENMY 不發佈色名**，所以「名字」那一格放的是 lib 的 `displayName()` 給的替代標示〔隨盒色卡的中文標示，僅 4 個膚色有；否則官方色系名〕，主識別一律是**色碼**。不限定套組——這裡回答「ENMY 哪支筆最接近」，要限定手上那盒請用 enmy-color 的側欄。改版跑該 repo 的 `scripts/sync-copies.sh` 同步） |
 | `data/fc-names-i18n.js`（FC 色名 zh/ja 對照，code→{zh,ja}）| `faber-castell-color`（由其 `data/source/generate.js` 從 `faber_castell_color_code_css_foreground_zh_ja.csv` 一併產生；改版重跑後同步複製，同 `fc-colors.js`）|
 | `icons/` | **本 app 自有**品牌圖（「彩色圓標記」，家族 §5.5 甲變體的範例），非沿用他 app；改圖只需動這裡。`favicon.ico` 由家族 `nodeapp-webapp-family/tools/make-ico.sh` 從本 app 的 `favicon.svg` 產（16/32/48、內嵌 PNG） |
 
