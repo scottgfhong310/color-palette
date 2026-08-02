@@ -1069,7 +1069,7 @@
 
   // 滴管讀值列（pinned＝釘住狀態：accent 環＋可點擊複製＋✕ 取消）
   function showPick(hex, pinned) {
-    var $p = $('#lightbox-pick').prop('hidden', false).toggleClass('pinned', !!pinned);
+    var $p = $('#lightbox-pick').prop('hidden', false).toggleClass('is-pinned', !!pinned);
     $p.attr('title', pinned ? I18n.t('lightbox.copyHint') : '');
     $p.find('.lightbox-pick-chip').css('background', hex);
     $p.find('.lightbox-pick-hex').text(hex);
@@ -1077,7 +1077,7 @@
     if (!$fc.length) $fc = $('<span class="lightbox-pick-fc">').appendTo($p);
     $fc.html(fcLineHtml(hex) + cdaLineHtml(hex) + cpcLineHtml(hex) + fclLineHtml(hex) + enLineHtml(hex));
   }
-  function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('pinned').attr('title', ''); setHotSwatch(-1); }
+  function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('is-pinned').attr('title', ''); setHotSwatch(-1); }
   // 釘住游標所在點的顏色（hover 是即時預覽；釘住的固定在頂端供比對／複製）
   function pinAt(clientX, clientY) {
     var s = lbSampleAt(clientX, clientY);

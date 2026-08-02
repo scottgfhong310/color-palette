@@ -420,9 +420,11 @@ body.density-compact .pcard-hint { display: none; }
 /* 取色器頭：colorize icon + 目前取得的顏色（由左下角移來） */
 .lb-pal-head {
   flex: 0 0 auto;
-  /* 定高（含取色三行：hex＋FC＋CDA）：idle／hover／釘住高度一致，
-     下方色塊區不因取消釘選或游標離圖而上移（點擊跳動修正） */
-  display: flex; align-items: center; gap: 8px; min-height: 74px;
+  /* 定高：idle／hover／釘住高度一致，下方色塊區不因取消釘選或游標離圖而上移（點擊跳動修正）。
+     ⚠️ 這個數字＝取色內容的實高：hex 一行 ＋ 每個比對器各一行。目前 5 個
+     （FC／CDA／COPIC／Finecolour／ENMY）＝ 101px 內容 + 18px padding = 119 → 取 120。
+     **加第 6 個比對器就要一起改**，否則頭部會在釘住時長高、下方整欄往下跳。 */
+  display: flex; align-items: center; gap: 8px; min-height: 120px;
   padding: 9px 12px; color: #fff;
   border-bottom: 1px solid rgba(255,255,255,.10);
 }
@@ -505,15 +507,15 @@ body.density-compact .pcard-hint { display: none; }
   font-size: .82rem; text-transform: uppercase;
 }
 /* 釘住狀態：accent 環標示「已釘住」、整格可點擊複製 hex、右側 ✕ 取消 */
-.lightbox-pick.pinned { cursor: pointer; }
-.lightbox-pick.pinned .lightbox-pick-chip { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.lightbox-pick.is-pinned { cursor: pointer; }
+.lightbox-pick.is-pinned .lightbox-pick-chip { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .lightbox-pick-unpin {
   display: none; flex: 0 0 auto; width: 16px; height: 16px; padding: 0;
   border: none; border-radius: 4px; background: rgba(255, 255, 255, .16);
   color: rgba(255, 255, 255, .85); font-size: 13px; line-height: 1; cursor: pointer;
 }
 .lightbox-pick-unpin:hover { background: rgba(255, 255, 255, .3); color: #fff; }
-.lightbox-pick.pinned .lightbox-pick-unpin { display: inline-flex; align-items: center; justify-content: center; }
+.lightbox-pick.is-pinned .lightbox-pick-unpin { display: inline-flex; align-items: center; justify-content: center; }
 .lightbox-hint { font-size: .78rem; opacity: .7; margin-left: auto; }
 .lightbox-close, .lightbox-fit { pointer-events: auto; flex: 0 0 auto; }
 @media (max-width: 720px) { .lightbox-hint { display: none; } }

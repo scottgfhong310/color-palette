@@ -53,6 +53,12 @@ median-cut 以「陣列中位索引」切盒，在**不等大色簇**上會把�
 - **萃取法 toggle**（`#setting-method`）只切「目前萃取法」（median↔frequency，存 localStorage）；
   既有檔以 **`#setting-reanalyze`（refresh）** 或明細內「重新分析」按目前法重算——切法不無聲改動既有 alias。
 - 同名覆寫：以 `mtime` 破縮圖快取（`?t=<mtime>`），穩定不亂閃。
+- ⚠️ **不要用 `pinned` 當 class 名**：Materialize 的 pushpin 佔用了它，且是
+  `.pinned{position:fixed !important}`。我們的取色頭原本 `toggleClass('pinned')`，於是
+  **一釘住顏色，整塊讀值就變成 fixed 定位、脫離文件流**——`.lb-pal-head` 因此量不到它的高度、
+  停在 `min-height`，而 `align-items:center` 把 101px 的內容置中到 74px 的盒子裡，
+  **上緣被切掉 14px**（症狀：點顏色時最上面那行往上擠出畫面）。已改名 `is-pinned`。
+  `!important` 不吃 specificity，所以這種撞名只能改名，不能靠覆寫壓過去。
 
 ## 8. 圖多時的瀏覽：色系分群 + 跳轉色軌 + 密度模式
 
