@@ -27,7 +27,7 @@
  *   hexToRgb · rgbToHsl · rgbToLab · deltaE(ΔE00) · deltaEBand
  *   nearestFinecolour({r,g,b}, { n, line, space, colors }) → [{ code,name,hex,cssVar,deltaE,band }]
  *   relLuminance · contrastRatio · pickTextColor
- *   setIndex(sets) · colorsInSet · setsOfColor · assortmentMatrix · columnGaps
+ *   setIndex(sets) · colorsInSet · setsOfColor · assortmentMatrix · columnGaps · setKey · findSet
  *   formatRgb · copyValue · buildCss · cssFilename
  */
 (function (global) {
@@ -247,8 +247,24 @@
     return { byCode: byCode, byColor: byColor };
   }
   function colorsInSet(sets, setCode) {
-    var s = (sets || []).filter(function (x) { return x.code === setCode; })[0];
+    var s = findSet(sets, setCode);
     return s ? s.colors.slice() : [];
+  }
+  /**
+   * 套組的**全域唯一鍵**。`code` 只在產品線內唯一——四條產品線各有一組 `standard-120`，
+   * 拿 `code` 當識別會把它們當成同一組。舊資料沒有 `key` 時退回 `code`。
+   */
+  function setKey(s) { return (s && (s.key || s.code)) || ''; }
+  /**
+   * 依 key 找套組；找不到才退而以 code 找，且**只在全域唯一時才認**
+   * （舊的 `?set=` 深連結給的是 code；撞號時寧可當沒選，也不要選錯一組）。
+   */
+  function findSet(sets, id) {
+    var list = sets || [];
+    var byKey = list.filter(function (x) { return setKey(x) === id; });
+    if (byKey.length) return byKey[0];
+    var byCode = list.filter(function (x) { return x.code === id; });
+    return byCode.length === 1 ? byCode[0] : null;
   }
   function setsOfColor(sets, colorCode) {
     return (sets || []).filter(function (s) { return s.colors.indexOf(colorCode) >= 0; });
@@ -263,12 +279,12 @@
     (sets || []).forEach(function (s) {
       var have = {};
       s.colors.forEach(function (c) { have[c] = 1; });
-      out[s.code] = base.filter(function (c) { return !have[c]; }).length;
+      out[setKey(s)] = base.filter(function (c) { return !have[c]; }).length;
     });
     return out;
   }
   /**
-   * 套組矩陣：列＝色、`cells[套組 code]` ＝ 該組有沒有收錄。
+   * 套組矩陣：列＝色、`cells[套組 key]` ＝ 該組有沒有收錄（key 見 setKey）。
    * `opts.codes` 可指定列（未選基準組時要列出「所有被收錄過的色」，那不是任何單一組的色單）；
    * 未給就用基準組的色單、照它自己的收錄順序。
    */
@@ -276,7 +292,7 @@
     var base = (opts && opts.codes) ? opts.codes.slice() : colorsInSet(sets, baseCode);
     return base.map(function (code) {
       var row = { code: code, cells: {} };
-      (sets || []).forEach(function (s) { row.cells[s.code] = s.colors.indexOf(code) >= 0; });
+      (sets || []).forEach(function (s) { row.cells[setKey(s)] = s.colors.indexOf(code) >= 0; });
       return row;
     });
   }
@@ -336,6 +352,8 @@
     setIndex: setIndex,
     colorsInSet: colorsInSet,
     setsOfColor: setsOfColor,
+    setKey: setKey,
+    findSet: findSet,
     columnGaps: columnGaps,
     assortmentMatrix: assortmentMatrix,
     formatRgb: formatRgb,
