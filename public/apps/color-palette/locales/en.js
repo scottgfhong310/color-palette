@@ -115,6 +115,7 @@ I18n.register('en', {
   'lightbox.pickIdle': 'Hover the image to pick',
 
   'toast.notImage': 'Skipped {n} non-image file(s)',
+  'toast.jp2Unsupported': 'Skipped {n} JPEG 2000 file(s): browsers cannot decode them — convert to PNG first',
   'toast.uploaded': 'Uploaded and analyzed {n} image(s)',
   'toast.uploadFail': '{n} image(s) failed to upload/analyze',
   'toast.analyzed': 'Analyzed: {n}',

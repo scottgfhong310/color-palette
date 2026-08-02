@@ -116,7 +116,25 @@ FC 141 色鉛彼此間距約 ΔE 3–8，5 剛好是這領域「叫得出名字�
 > 五個明細視圖的分工：**色族/主色/全收**＝面積代表色（指紋）｜**分布**＝ΔE≈5 誠實面積分布｜
 > **重點色**＝彩度加權顯著性（抓小而鮮的重點）。想針對「某一個小色」精確取值，仍以燈箱滴管為準。
 
-## 11. 安全（家族 §3.4／§8）
+## 11. 支援哪些圖檔格式：由瀏覽器的解碼器決定
+
+萃取全程走 `new Image()` → `drawImage` → `getImageData`（§2），所以**白名單能不能加一個格式，
+不是我們決定的，是瀏覽器有沒有那個解碼器決定的**。加白名單前先實測，不查表。
+
+- **`.avif` 已加入**（2026-08-03）：Chromium／Firefox／Safari 皆原生解碼，實測 `<img>` 載入
+  → canvas 取值 → 萃出色票全程正常，**白名單一行以外零改動**。
+- **`.jp2`（JPEG 2000）不加入**：Chromium 與 Firefox 從無解碼器（同一支探針下 `.avif` 解得開、
+  `.jp2` 一律 `DECODE FAIL`）；只有 Safari 走 macOS ImageIO 讀得到。**只在一種瀏覽器成立的不叫支援**，
+  而本 app 是 public repo。改為**明確回報**：`Lib.isJpeg2000()` 單獨認出它，
+  toast `toast.jp2Unsupported` 說「瀏覽器無法解碼，請先轉成 PNG」——
+  **它是圖片檔，不能沿用 `toast.notImage`「非圖片檔」**，那會讓使用者以為自己丟錯檔案。
+  - **重新評估的觸發條件**（滿足其一再談 vendored 解碼器）：① 手上真的出現以 `.jp2` 為主的素材
+    （典型是博物館／IIIF 數位典藏）；② Chromium 或 Firefox 任一原生支援 JPEG 2000。
+  - 屆時的做法是**前端 vendored OpenJPEG wasm**（比照 `tibetan-siddham` 收 bonji 引擎的先例），
+    解出 ImageData 後餵給現有 lib；**不是後端轉檔**——`sharp` 的預編譯 libvips 不含 OpenJPEG、
+    `sips` 只有 macOS、ImageMagick 要另裝系統套件，三條都會讓這支 repo 不再 clone 下來就能跑。
+
+## 12. 安全（家族 §3.4／§8）
 
 - 檔名消毒：`basename === 原值`、擋 `../ \ \0`、**圖片副檔名白名單** `.png/.jpg/.jpeg/.webp/.avif/.gif/.bmp`（picker accept + 後端再驗）。
 - 色票驗證：colors 非空且 ≤ 12、r/g/b 為 0–255 整數、hex `#rrggbb`、ratio 0–1、method 白名單；不合法一律 `400 { ok:false }`。

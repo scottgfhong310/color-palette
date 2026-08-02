@@ -52,6 +52,9 @@
   var SAT_MIN = 0.12;
 
   var IMAGE_RE = /\.(png|jpe?g|webp|avif|gif|bmp)$/i;
+  // JPEG 2000：是圖片，但 Chromium / Firefox 沒有解碼器（只有 Safari 走 macOS ImageIO 讀得到），
+  // 故不進白名單；單獨認出來是為了回報「本瀏覽器無法解碼」而不是誤報「非圖片檔」。
+  var JP2_RE = /\.(jp2|j2k|jpf|jpx|jpm)$/i;
 
   // ---- 色彩工具 ----------------------------------------------------------
   function clamp255(x) { return x < 0 ? 0 : x > 255 ? 255 : x; }
@@ -498,6 +501,7 @@
   }
 
   function isImage(name) { return IMAGE_RE.test(String(name || '')); }
+  function isJpeg2000(name) { return JP2_RE.test(String(name || '')); }
 
   // ---- 色距 / 找最近色票（滴管、色塊定位用；移植自 thangka-trace-lib，純函式） ----
   // redmean 加權色距（平方）——比純 RGB 歐氏更接近人眼感知
@@ -660,6 +664,7 @@
     MAX_COLORS: MAX_COLORS,
     METHODS: METHODS,
     isImage: isImage,
+    isJpeg2000: isJpeg2000,
     fileUrl: fileUrl,
     formatSize: formatSize,
     timestamp: timestamp,

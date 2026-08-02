@@ -557,7 +557,10 @@
   function handleFiles(fileList) {
     var arr = Array.prototype.slice.call(fileList || []);
     var imgs = arr.filter(function (file) { return Lib.isImage(file.name); });
-    var skipped = arr.length - imgs.length;
+    // JPEG 2000 是圖片檔，只是瀏覽器解不開 → 分開回報，別讓使用者以為自己丟錯檔
+    var jp2 = arr.filter(function (file) { return Lib.isJpeg2000(file.name); });
+    var skipped = arr.length - imgs.length - jp2.length;
+    if (jp2.length) toast('toast.jp2Unsupported', 'orange', { n: jp2.length });
     if (skipped > 0) toast('toast.notImage', 'orange', { n: skipped });
     if (!imgs.length) return;
 

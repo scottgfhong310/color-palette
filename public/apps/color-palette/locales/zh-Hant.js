@@ -115,6 +115,7 @@ I18n.register('zh-Hant', {
   'lightbox.pickIdle': '滑過圖片取色',
 
   'toast.notImage': '略過 {n} 個非圖片檔',
+  'toast.jp2Unsupported': '略過 {n} 個 JPEG 2000：瀏覽器無法解碼，請先轉成 PNG',
   'toast.uploaded': '已上傳並分析 {n} 張',
   'toast.uploadFail': '{n} 張上傳／分析失敗',
   'toast.analyzed': '已分析：{n}',
