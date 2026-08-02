@@ -118,7 +118,7 @@ FC 141 色鉛彼此間距約 ΔE 3–8，5 剛好是這領域「叫得出名字�
 
 ## 11. 安全（家族 §3.4／§8）
 
-- 檔名消毒：`basename === 原值`、擋 `../ \ \0`、**圖片副檔名白名單** `.png/.jpg/.jpeg/.webp/.gif/.bmp`（picker accept + 後端再驗）。
+- 檔名消毒：`basename === 原值`、擋 `../ \ \0`、**圖片副檔名白名單** `.png/.jpg/.jpeg/.webp/.avif/.gif/.bmp`（picker accept + 後端再驗）。
 - 色票驗證：colors 非空且 ≤ 12、r/g/b 為 0–255 整數、hex `#rrggbb`、ratio 0–1、method 白名單；不合法一律 `400 { ok:false }`。
 - 操作目標寫死 server 端（固定 `public/upload/color-palette`），不接受任意路徑參數；覆寫 registry 前 `.bak`。
 - `express.json({ limit:'5mb' })`、上傳 ≤ 20 檔、清空 `confirm()` 二次確認（文案註明無法復原）。

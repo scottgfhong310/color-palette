@@ -2,7 +2,7 @@
 I18n.register('ja', {
   'title.page': 'Color Palette — 画像の色構成',
   'empty.title': '画像をページの好きな場所にドラッグ',
-  'empty.hint': '画像は <code>/upload/color-palette</code> にアップロードされ（同名は上書き）、主要な色構成を自動解析します。<br />または <u>クリックして画像を選択</u>。対応形式：<code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.gif</code> / <code>.bmp</code>。',
+  'empty.hint': '画像は <code>/upload/color-palette</code> にアップロードされ（同名は上書き）、主要な色構成を自動解析します。<br />または <u>クリックして画像を選択</u>。対応形式：<code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.avif</code> / <code>.gif</code> / <code>.bmp</code>。',
   'drop.text': '離すと /upload/color-palette にアップロード',
   'loading': '処理中…',
 

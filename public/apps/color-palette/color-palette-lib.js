@@ -51,7 +51,7 @@
   // 判定「無色相（achromatic）」的飽和度門檻：低於此的色（灰階）色相不穩定，排序時殿後
   var SAT_MIN = 0.12;
 
-  var IMAGE_RE = /\.(png|jpe?g|webp|gif|bmp)$/i;
+  var IMAGE_RE = /\.(png|jpe?g|webp|avif|gif|bmp)$/i;
 
   // ---- 色彩工具 ----------------------------------------------------------
   function clamp255(x) { return x < 0 ? 0 : x > 255 ? 255 : x; }

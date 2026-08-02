@@ -2,7 +2,7 @@
 I18n.register('zh-Hant', {
   'title.page': 'Color Palette — 圖片顏色組成',
   'empty.title': '拖拉圖片到頁面任意位置',
-  'empty.hint': '圖片會上傳到 <code>/upload/color-palette</code>（同名覆寫），並自動分析主要顏色組成；<br />或 <u>點此選擇圖片</u>。支援 <code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.gif</code> / <code>.bmp</code>。',
+  'empty.hint': '圖片會上傳到 <code>/upload/color-palette</code>（同名覆寫），並自動分析主要顏色組成；<br />或 <u>點此選擇圖片</u>。支援 <code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.avif</code> / <code>.gif</code> / <code>.bmp</code>。',
   'drop.text': '放開以上傳到 /upload/color-palette',
   'loading': '處理中…',
 

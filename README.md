@@ -13,7 +13,7 @@ Part of the **nodeapp WebApp family** — shared conventions and workflow live a
 
 ## Features
 
-- **Drag-and-drop / click upload** of images (`.png` `.jpg` `.webp` `.gif` `.bmp`), auto-analyzed on upload.
+- **Drag-and-drop / click upload** of images (`.png` `.jpg` `.webp` `.avif` `.gif` `.bmp`), auto-analyzed on upload.
 - **Two extraction methods**, toggleable: *median-cut* (color families, even coverage) and *frequency* (dominant colors by area).
 - **Palette as alias**: each image's ≤ 12 main colors become a hue-sorted swatch row.
 - **Hue ordering**: swatches within an alias and the whole gallery are sorted by hue (achromatic images sort last).

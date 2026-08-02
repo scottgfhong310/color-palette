@@ -34,7 +34,7 @@ const BAK_DIR = path.join(UPLOAD_DIR, '.bak');
 const MD_DIR = path.join(UPLOAD_DIR, 'palettes');
 
 // 圖片副檔名白名單（picker accept + 後端再驗；與 lib 的 isImage 對齊）
-const IMAGE_RE = /\.(png|jpe?g|webp|gif|bmp)$/i;
+const IMAGE_RE = /\.(png|jpe?g|webp|avif|gif|bmp)$/i;
 const METHODS = new Set(['median', 'frequency']);
 const MAX_COLORS = 12;
 

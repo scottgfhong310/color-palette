@@ -2,7 +2,7 @@
 I18n.register('en', {
   'title.page': 'Color Palette — Image color composition',
   'empty.title': 'Drag an image anywhere on the page',
-  'empty.hint': 'Images are uploaded to <code>/upload/color-palette</code> (same name overwrites) and analyzed for their main colors;<br />or <u>click to choose an image</u>. Supports <code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.gif</code> / <code>.bmp</code>.',
+  'empty.hint': 'Images are uploaded to <code>/upload/color-palette</code> (same name overwrites) and analyzed for their main colors;<br />or <u>click to choose an image</u>. Supports <code>.png</code> / <code>.jpg</code> / <code>.webp</code> / <code>.avif</code> / <code>.gif</code> / <code>.bmp</code>.',
   'drop.text': 'Release to upload to /upload/color-palette',
   'loading': 'Working…',
 
