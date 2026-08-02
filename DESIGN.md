@@ -53,6 +53,8 @@ median-cut 以「陣列中位索引」切盒，在**不等大色簇**上會把�
 - **萃取法 toggle**（`#setting-method`）只切「目前萃取法」（median↔frequency，存 localStorage）；
   既有檔以 **`#setting-reanalyze`（refresh）** 或明細內「重新分析」按目前法重算——切法不無聲改動既有 alias。
 - 同名覆寫：以 `mtime` 破縮圖快取（`?t=<mtime>`），穩定不亂閃。
+- **燈箱點色票＝定位 ＋ 複製 css hex**（大寫 `#RRGGBB`，與取色頭共用 `copyHex()`）；
+  再點同一個取消定位，但**取消時仍複製**——複製是「我要這個色碼」的獨立意圖，不是定位的副作用。
 - ⚠️ **不要用 `pinned` 當 class 名**：Materialize 的 pushpin 佔用了它，且是
   `.pinned{position:fixed !important}`。我們的取色頭原本 `toggleClass('pinned')`，於是
   **一釘住顏色，整塊讀值就變成 fixed 定位、脫離文件流**——`.lb-pal-head` 因此量不到它的高度、

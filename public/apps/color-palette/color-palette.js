@@ -1087,16 +1087,17 @@
     setHotSwatch(lbPinned.idx);
   }
   function unpin() { lbPinned = null; hidePick(); }
-  // 複製釘住的 hex（大寫；比照 copyAllDetail 的 clipboard 慣例）
-  function copyPinnedHex() {
-    if (!lbPinned) return;
-    var t = lbPinned.hex.toUpperCase();
+  // 複製單一 css hex（大寫；比照 copyAllDetail 的 clipboard 慣例）——取色頭與色票列共用
+  function copyHex(hex) {
+    var t = String(hex || '').toUpperCase();
+    if (!t) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(t)
         .then(function () { toast('lightbox.copied', 'teal', { hex: t }); })
         .catch(function () { toast('toast.copyFail', 'red'); });
     } else { toast('toast.copyFail', 'red'); }
   }
+  function copyPinnedHex() { if (lbPinned) copyHex(lbPinned.hex); }
   function setHotSwatch(idx) {
     $('#lightbox-palette .lb-swatch').removeClass('hot');
     if (idx >= 0) $('#lightbox-palette .lb-swatch[data-idx="' + idx + '"]').addClass('hot');
@@ -1245,6 +1246,7 @@
     $('#lightbox-palette').on('click', '.lb-swatch', function () {
       var idx = +$(this).attr('data-idx');
       if (lbActiveIdx === idx) clearMask(); else showMask(idx);
+      if (lbColors[idx]) copyHex(lbColors[idx].hex);   // 定位的同時順手複製 css hex
     });
     // 色系 chip → 定位整個色群（再點同一個 → 取消）
     $('#lightbox-families').on('click', '.lb-family', function () {
