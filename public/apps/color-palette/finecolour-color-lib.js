@@ -59,10 +59,12 @@
   /**
    * 排序鍵：色系（官方序）→ 全域號碼。
    * 號碼是數字欄（`num`），不是從色碼字串剖出來的——`BV321` 與 `CG271` 的數字位數不同，
-   * 純字串序會把 `Y9` 排在 `Y10` 之後。fineliner 沒有色系，統一殿後、只比號碼。
+   * 純字串序會把 `Y9` 排在 `Y10` 之後。
+   * fineliner 與 acrylic 都沒有色系，依序殿後、只比號碼。
    */
+  var SPACE_RANK = { fineliner: 900, acrylic: 901 };
   function codeKey(c, famSort) {
-    var f = c.space === 'fineliner' ? 900 : (famSort[c.family] || 99);
+    var f = SPACE_RANK[c.space] || (famSort[c.family] || 99);
     return [f, typeof c.num === 'number' ? c.num : 0, String(c.code)];
   }
   function cmp(a, b) {
@@ -103,11 +105,16 @@
    */
   function officialName(c) {
     if (!c) return '';
+    // official === 'none' ＝ **原廠不發佈色名**（EF600 壓克力 120 色）。
+    // 回空字串，由呼叫端顯示色號並明講「原廠不發佈色名」——不是留白（同 ENMY §11.1）。
+    if (c.official === 'none') return '';
     return c.official === 'zh' ? (c.nameZh || '') : (c.name || '');
   }
+  /** 這支色到底有沒有官方色名。沒有名字與「名字還沒抽到」在畫面上要能分開講。 */
+  function hasOfficialName(c) { return !!c && c.official !== 'none'; }
   /** 該語言的譯名；語言就是官方語言時回 ''（主名已另處顯示，不重複）。 */
   function localName(c, lang) {
-    if (!c) return '';
+    if (!c || c.official === 'none') return '';
     var want = lang === 'ja' ? 'ja' : (lang === 'en' ? 'en' : 'zh');
     if (want === (c.official || 'en')) return '';
     return want === 'ja' ? (c.nameJa || '') : want === 'en' ? (c.name || '') : (c.nameZh || '');
@@ -206,8 +213,11 @@
   }
   /**
    * 找出最接近給定 RGB 的 Finecolour 色。
-   * **預設只比 marker 那 480 色**——彩針筆是另一種筆（水性、針管尖），
-   * 拿它回答「該用哪支麥克筆」是答非所問。要比彩針筆就傳 `space:'fineliner'`。
+   * **預設只比 marker 那 480 色**。另外兩個色號空間都是**不同的筆**：
+   *   `'fineliner'`（EF300，水性針管尖）
+   *   `'acrylic'` （EF600，水性壓克力、**不透明**，能蓋在深色上）
+   * 拿它們回答「該用哪支麥克筆」是答非所問——尤其壓克力是**不透明**媒材，
+   * 與酒精麥克筆的疊色行為完全不同，混進同一份推薦會誤導。要比就顯式傳 `space`。
    * opts.line 可再限定產品線（`'EF101'` 只比 2 代有出的 188 色）——**手上沒有的筆別推薦**。
    *
    * **預設排除 0 號無色調和筆**（`#ffffff`，沒有顏料，用途是暈染／推色）。
@@ -339,6 +349,7 @@
     sortColors: sortColors,
     isAchromatic: isAchromatic,
     officialName: officialName,
+    hasOfficialName: hasOfficialName,
     localName: localName,
     hexToRgb: hexToRgb,
     rgbToHsl: rgbToHsl,
