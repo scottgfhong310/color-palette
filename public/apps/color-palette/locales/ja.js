@@ -117,6 +117,7 @@ I18n.register('ja', {
   'toast.notImage': '画像でない {n} 件をスキップ',
   'toast.jp2Unsupported': 'JPEG 2000 {n} 件をスキップ：ブラウザーがデコードできません。PNG に変換してください',
   'toast.uploaded': '{n} 枚をアップロード・解析しました',
+  'toast.uploadedRenamed': '同名のため {n} として保存しました',
   'toast.uploadFail': '{n} 枚のアップロード／解析に失敗',
   'toast.analyzed': '解析しました：{n}',
   'toast.analyzeFail': '解析に失敗：{n}（{m}）',

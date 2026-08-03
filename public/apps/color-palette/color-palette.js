@@ -565,20 +565,29 @@
     if (!imgs.length) return;
 
     showLoading();
-    var ok = 0, fail = 0, lastName = null;
+    var ok = 0, fail = 0, lastName = null, renamed = [];
     // 逐檔序列處理：上傳 → 重新讀清單取得該檔 mtime → 分析 → 落地
     var chain = Promise.resolve();
     imgs.forEach(function (file) {
       chain = chain.then(function () {
+        var saved = file.name;   // 伺服器實際存下的名字（撞名時 ≠ file.name）
         return Lib.uploadFile(file)
-          .then(function () { return Lib.listFiles(); })
+          .then(function (resp) {
+            // ⚠️ 一律以伺服器回報的 filename 為準（家族 §3.3）。用 file.name 的話，
+            //    撞名時 findFile 會找到「原本就在的那張舊圖」並分析它——新圖從未被分析，
+            //    畫面卻顯示舊圖的色彩結果，而且不會有任何錯誤訊息。
+            var info = (resp && resp.files && resp.files[0]) || {};
+            saved = info.filename || file.name;
+            if (info.renamed) renamed.push(saved);
+            return Lib.listFiles();
+          })
           .then(function (list) {
             files = list;
-            var f = findFile(file.name);
+            var f = findFile(saved);
             if (!f) throw new Error('上傳後找不到檔案');
             return analyzeAndSave(f);
           })
-          .then(function () { ok++; lastName = file.name; })
+          .then(function () { ok++; lastName = saved; })
           .catch(function (err) { fail++; console.error('[color-palette] 上傳/分析失敗', file.name, err); });
       });
     });
@@ -587,6 +596,8 @@
     }).then(function () {
       hideLoading();
       if (ok) toast('toast.uploaded', 'green', { n: ok });
+      // 本 app 的 toast.uploaded 是「張數」聚合句，撞名改名另外逐檔提示（通常 0 筆）
+      renamed.forEach(function (n) { toast('toast.uploadedRenamed', 'green', { n: n }); });
       if (fail) toast('toast.uploadFail', 'red', { n: fail });
       // focus 到剛上傳（最後一張）的圖，並即時標出其色系
       if (lastName) focusImage(lastName);

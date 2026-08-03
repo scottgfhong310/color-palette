@@ -117,6 +117,7 @@ I18n.register('zh-Hant', {
   'toast.notImage': '略過 {n} 個非圖片檔',
   'toast.jp2Unsupported': '略過 {n} 個 JPEG 2000：瀏覽器無法解碼，請先轉成 PNG',
   'toast.uploaded': '已上傳並分析 {n} 張',
+  'toast.uploadedRenamed': '同名已存在，已存為：{n}',
   'toast.uploadFail': '{n} 張上傳／分析失敗',
   'toast.analyzed': '已分析：{n}',
   'toast.analyzeFail': '分析失敗：{n}（{m}）',
