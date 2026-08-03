@@ -120,6 +120,55 @@
     return want === 'ja' ? (c.nameJa || '') : want === 'en' ? (c.name || '') : (c.nameZh || '');
   }
 
+  /**
+   * ⚠️ **這是我們算的，不是原廠分類。**
+   *
+   * EF600 壓克力筆原廠**不發佈色系**（也不發佈色名）。麥克筆那 23 群與 COPIC 的 17 群
+   * 都是官方分類、存在 DB 的 `fd_color_family_idx`；本表**刻意不入庫**，
+   * 只在畫面上當一個粗篩選——否則衍生值會與官方值混在同一個欄位裡，
+   * 日後沒有人分得出哪個是原廠說的。
+   *
+   * 為什麼不用別的推導法（兩條都實測過）：
+   *   · 依編號每 10 個一組 → 11 個最大色相跳躍**沒有一個**落在 10 的倍數上；
+   *     編號是平滑的色相漸變，不是分好的群（120 色圖那 12 欄只是版面）。
+   *   · 用最接近的麥克筆借它的色系 → **81/120 的前三名色系彼此不一致**，
+   *     同一支色換個名次就換一個系。不是不準，是不穩。
+   *
+   * 門檻取自這 120 色自己的分布：飽和度 < 0.12（第 10 百分位附近）視為中性，
+   * 另把極暗（l < 0.15，本組的黑 619）與極亮（l > 0.95，近白的 506／525）一併歸中性
+   * ——它們的色相在那個彩度下沒有意義。
+   */
+  var HUE_BINS = [
+    ['red', 345, 15], ['orange', 15, 45], ['yellow', 45, 70], ['green', 70, 160],
+    ['cyan', 160, 200], ['blue', 200, 250], ['violet', 250, 290], ['pink', 290, 345]
+  ];
+  function _hsl(c) {
+    var r = c.r / 255, g = c.g / 255, b = c.b / 255;
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0;
+    if (mx !== mn) {
+      var d = mx - mn;
+      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
+      h *= 60;
+    }
+    return { h: h, s: s, l: l };
+  }
+  /** 這支色落在哪一個**計算出來的**色相群；回傳 'red'…'pink' 或 'neutral'。 */
+  function hueGroupOf(c) {
+    if (!c) return 'neutral';
+    var v = _hsl(c);
+    if (v.s < 0.12 || v.l < 0.15 || v.l > 0.95) return 'neutral';
+    for (var i = 0; i < HUE_BINS.length; i++) {
+      var a = HUE_BINS[i][1], b = HUE_BINS[i][2];
+      if (a > b ? (v.h >= a || v.h < b) : (v.h >= a && v.h < b)) return HUE_BINS[i][0];
+    }
+    return 'neutral';
+  }
+  /** 群的顯示順序（含 neutral 殿後）。呼叫端自己配文案。 */
+  function hueGroupKeys() {
+    return HUE_BINS.map(function (x) { return x[0]; }).concat(['neutral']);
+  }
+
   // ---- 色彩換算（與 FC / CDA 兩支 lib 逐字相同） --------------------------
 
   function hexToRgb(hex) {
@@ -350,6 +399,8 @@
     isAchromatic: isAchromatic,
     officialName: officialName,
     hasOfficialName: hasOfficialName,
+    hueGroupOf: hueGroupOf,
+    hueGroupKeys: hueGroupKeys,
     localName: localName,
     hexToRgb: hexToRgb,
     rgbToHsl: rgbToHsl,
