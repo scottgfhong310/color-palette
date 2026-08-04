@@ -120,8 +120,13 @@ v1 確立了「**結構化 Description 才是資產，句子只是它的一種�
 - v1：焦點是一抹小而鮮的**紅**
 - v2：焦點是一抹小而鮮的 **印度紅（≈FC192）** ／ **India red** ／ **インディアンレッド**
 
-lib 不直接相依 FC——名字由 hook 注入；在地名對照 `fc-names-i18n.js` 由 `faber-castell-color`
-的產生器輸出（英文名仍是 canonical，不翻譯）。
+lib 不直接相依 FC——名字由 hook 注入；在地名直接取自 `fc-colors.js` 每筆的 `nameZh`／`nameJa`
+（英文名仍是 canonical，不翻譯）。
+
+> 2026-08-04 前這裡讀的是另一份 `data/fc-names-i18n.js`，那是 `db_artcolor` 建庫**之前**的產物，
+> 與 SoR 現值有 47 筆 zh／19 筆 ja 出入（如 104「淡黃罩染色」→「淺透明黃」），且上游早已沒有它。已移除。
+> 它另外只涵蓋 ag 141 色——但 `fcNear()` 用 `nearestFC` 的預設 `series:'ag'`，Black Edition 本來就取不到，
+> 故那一段是潛在問題、不是已發生的問題。
 
 ### 5.2 有觀點：相對於你的圖庫
 
@@ -228,7 +233,7 @@ gallery 的 **篩選列**（側鍵 `filter_list`）依現有標籤動態生成 c
 | 純核心 lib（describe / phrase / metrics） | `public/apps/color-palette/color-portrait-lib.js`（`window.ColorPortraitLib`） |
 | 五構面萃取（餵給 describe 的 facets） | `color-palette-lib.js`：`extractPalette` / `distributionByDeltaE` / `accentColors` |
 | 措辭（三語） | `locales/*.js` 的 `portrait.*` key |
-| FC 名在地化對照 | `data/fc-names-i18n.js`（由 `faber-castell-color` 產生器輸出） |
+| FC 名在地化對照 | `data/fc-colors.js` 每筆的 `nameZh`／`nameJa`（隨 `db_artcolor` 匯出走） |
 | 控制器接線（語料 + FC hook） | `color-palette.js`：`portraitOpts()` / `fcLocalName()` / `renderPortrait()` |
 | 呈現位置 | 明細 `#detail-portrait`、完整報告頂端 |
 

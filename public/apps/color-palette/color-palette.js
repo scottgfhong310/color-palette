@@ -45,12 +45,24 @@
     var rgb = FC.hexToRgb(hex); if (!rgb) return [];
     return FC.nearestFC(rgb, { n: n || 1 });
   }
-  // FC 色名依語言在地化（zh-Hant→zh、ja→ja；en 或缺對照→英文原名）；對照表 data/fc-names-i18n.js
+  // FC 色名依語言在地化——fc-colors.js 每筆已內建 nameZh/nameJa，惰性建 code 索引（同 CDA／COPIC）
+  // ⚠️ 原本讀的是另一份 data/fc-names-i18n.js，那是 db_artcolor 建庫**之前**的產物，已於
+  // 2026-08-04 移除。實際咬到的是**譯名過期**：與 SoR 現值有 zh 47 筆、ja 19 筆不同
+  // （如 104「淡黃罩染色」→「淺透明黃」、134「クリムゾン」→「クリムソン」），
+  // 而 fc-colors.js 那份才是 db_artcolor 的現值。匯出器不產它、faber-castell-color
+  // 也沒有它——**沒有權威版的複製件就是過期資料**。
+  // （它只涵蓋 ag 141 色，Black Edition 118 色沒有譯名；但 fcNear() 用 nearestFC 的預設
+  //  series:'ag'，7xx 本來就取不到，所以那一段在本 app 是潛在問題而非已發生的問題。）
+  var _fcIdx = null;
   function fcLocalName(code, fallback) {
-    var loc = window.FC_NAMES_I18N && FC_NAMES_I18N[code];
-    if (loc) {
-      if (I18n.lang === 'zh-Hant' && loc.zh) return loc.zh;
-      if (I18n.lang === 'ja' && loc.ja) return loc.ja;
+    if (!_fcIdx && window.FC_COLORS) {
+      _fcIdx = {};
+      window.FC_COLORS.forEach(function (c) { _fcIdx[c.code] = c; });
+    }
+    var c = _fcIdx && _fcIdx[code];
+    if (c) {
+      if (I18n.lang === 'zh-Hant' && c.nameZh) return c.nameZh;
+      if (I18n.lang === 'ja' && c.nameJa) return c.nameJa;
     }
     return fallback;
   }
