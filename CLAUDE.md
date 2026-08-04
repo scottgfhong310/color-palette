@@ -17,13 +17,22 @@ public/apps/color-palette/          # 前端（服務於 /apps/color-palette/）
 ├─ color-portrait-lib.js             # 五構面 → 一句色彩描述（純函式、零相依；家族共用候選）
 ├─ materialize-dark.css · side-tool.{css,js} · i18n.js · locales/{zh-Hant,en,ja}.js
 public/upload/color-palette/        # 上傳圖片 + .registry.json（內容不進版控）
+scripts/sync-copies.sh              # 前端＋route → InProgress 鏡像；並驗 15 個借來的共用件（只驗不抓）
 ```
 
 ## 執行 / 驗證
 
 ```bash
 npm install && node app.js          # → http://localhost:3000/apps/color-palette/
+bash scripts/sync-copies.sh         # 回灌 InProgress ＋ 驗共用件（不一致回非 0）
 ```
+
+> **回灌不是一次性的**：GitHub 版是權威，之後每次改前端都要再跑一次，否則 3001 上跑的是舊版。
+> 腳本同時做兩件方向相反的事——**①② 往外推**（整包前端＋`routes/color-palette.js`）、
+> **③ 只驗不抓**（15 個借來的檔：5 個家族共用件＋5 支色號 lib＋5 份色號資料）。
+> ⚠️ **`routes/upload.js` 刻意不同步**——本 repo 那份是家族最小版，InProgress 那份是**增強版**
+> （SHARED_LIBRARY_GUIDELINES §4 明文不納入稽核），覆蓋它會把孵化器的上傳功能改壞。
+> ⚠️ `public/upload/color-palette/` 不在同步範圍（使用者上傳的圖與 registry，兩邊各自獨立）。
 
 驗證（preview 實跑）：`/` 302、資產 200、`/files` 回 `{ ok }`、上傳→自動分析→色塊出現、
 萃取法切換重算、色相排序（同色系相鄰）、i18n 三語、主題切換、清空 `confirm()`、路徑穿越被擋。
