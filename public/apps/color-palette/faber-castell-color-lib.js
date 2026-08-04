@@ -267,27 +267,21 @@
     }).sort(function (a, b) { return a.deltaE - b.deltaE; }).slice(0, n);
   }
 
-  // 色系分群（沿色相環）；'neutral'＝黑/白/灰。移植自 color-palette-lib 的 hueFamily/FAMILY_ORDER。
-  var FAMILY_ORDER = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta', 'neutral'];
-  function hueFamily(hue) {
-    var h = ((hue % 360) + 360) % 360;
-    if (h >= 345 || h < 15) return 'red';
-    if (h < 45) return 'orange';
-    if (h < 70) return 'yellow';
-    if (h < 165) return 'green';
-    if (h < 195) return 'cyan';
-    if (h < 255) return 'blue';
-    if (h < 290) return 'purple';
-    return 'magenta';
-  }
-  // 是否視為無彩度：金屬色（漸層/近似）一律算中性；否則看飽和度 <0.17（黑/白/灰）。
-  // 「金屬即中性」——近白金屬（gold/silver/copper…）在 HSL 近白處飽和度會被放大而誤判有彩度，故明確歸中性。
+  // 色系分群——**規則來自家族共用件 `color-family.js`**（`window.ColorFamily`）。
+  // 本檔只寫下 FC 自己的兩件事：無彩度門檻，以及「**金屬色一律歸中性**」這條
+  // brand-specific 規則（近白金屬在 HSL 近白處飽和度會被放大而誤判有彩度）。
+  var FAMILY_ORDER = (window.ColorFamily && window.ColorFamily.FAMILY_ORDER) ||
+    ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta', 'neutral'];
+  var FAMILY_SAT_MIN = 0.17;          // 本 app 的無彩度門檻（color-palette 用 0.12）
   function isAchromatic(color) {
-    return isMetallic(color) || rgbToHsl(color.r, color.g, color.b).s < 0.17;
+    return isMetallic(color) || rgbToHsl(color.r, color.g, color.b).s < FAMILY_SAT_MIN;
   }
-  // 某色屬哪個色系：無彩度 → 'neutral'，否則依色相分。
+  // 某色屬哪個色系：金屬色或無彩度 → 'neutral'，否則依色相分。
   function colorFamily(color) {
-    return isAchromatic(color) ? 'neutral' : hueFamily(rgbToHsl(color.r, color.g, color.b).h);
+    return window.ColorFamily.familyOf(color.r, color.g, color.b, {
+      satMin: FAMILY_SAT_MIN,
+      achromatic: function () { return isMetallic(color); }
+    });
   }
 
   var SORT_MODES = ['code', 'hue', 'lightness', 'family', 'hex'];

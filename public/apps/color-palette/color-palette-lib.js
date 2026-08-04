@@ -232,42 +232,20 @@
   }
 
   // ---- 色系分群（把連續色相切成可導航的區段） ---------------------------
-  // 分群順序（沿色相環）；'neutral'＝灰階（無主色相）。'pending'（未分析）由控制器另置末端。
-  var FAMILY_ORDER = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta', 'neutral'];
-  // 各色系的色相範圍 [min, max)（度）；red 跨 0 度（345→360→15）。
-  var FAMILY_RANGES = {
-    red: [345, 15], orange: [15, 45], yellow: [45, 70], green: [70, 165],
-    cyan: [165, 195], blue: [195, 255], purple: [255, 290], magenta: [290, 345]
-  };
-
-  // 色相 → 色系 key；hue 為 null（灰階）回 'neutral'
-  function hueFamily(hue) {
-    if (hue == null || hue < 0) return 'neutral';
-    var h = ((hue % 360) + 360) % 360;
-    if (h >= 345 || h < 15) return 'red';
-    if (h < 45) return 'orange';
-    if (h < 70) return 'yellow';
-    if (h < 165) return 'green';
-    if (h < 195) return 'cyan';
-    if (h < 255) return 'blue';
-    if (h < 290) return 'purple';
-    return 'magenta';
-  }
-
-  // 色系的代表（中點）色相；'neutral' 回 null。供 UI 產生色系標示色（如 hsl(mid,…)）。
-  function familyMidHue(key) {
-    var r = FAMILY_RANGES[key];
-    if (!r) return null;
-    var a = r[0], b = r[1];
-    if (a > b) return (((a + (b + 360)) / 2) % 360);   // 跨 0 度（red）
-    return (a + b) / 2;
-  }
+  // ⚠️ **規則已抽成家族共用件 `color-family.js`**（`window.ColorFamily`）——
+  // 這段原本住在本檔，之後被逐字抄進 faber-castell-color／caran-dache-color／
+  // finecolour-color 三支 lib，四份「應該永遠一樣」的東西各自躺著。
+  // 本檔現在只保留**本 app 自己的門檻**：`SAT_MIN = 0.12`（逐像素遮罩要更敏感，
+  // 三支色彩 registry 用 0.17）。改分群規則請改權威版，不要改這裡。
+  var FAMILY_ORDER = window.ColorFamily.FAMILY_ORDER;
+  var FAMILY_RANGES = window.ColorFamily.FAMILY_RANGES;
+  var hueFamily = window.ColorFamily.hueFamily;
+  var familyMidHue = window.ColorFamily.familyMidHue;
 
   // 像素 → 色系 key：achromatic（飽和 < SAT_MIN）歸 'neutral'，其餘依色相 hueFamily。
   // 逐像素分類的單一權威（燈箱「色系遮罩」用）；與 gallery 分群同源。
   function familyOf(r, g, b) {
-    var hsl = rgbToHsl(r, g, b);
-    return hsl[1] < SAT_MIN ? 'neutral' : hueFamily(hsl[0]);
+    return window.ColorFamily.familyOf(r, g, b, { satMin: SAT_MIN });
   }
 
   // 合併完全相同 hex 的色票（累加 ratio）：median-cut 在不等大色簇上會把純色切成多個

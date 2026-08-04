@@ -28,7 +28,7 @@
  *   nearestFinecolour({r,g,b}, { n, line, space, colors }) → [{ code,name,hex,cssVar,deltaE,band }]
  *   relLuminance · contrastRatio · pickTextColor
  *   setIndex(sets) · colorsInSet · setsOfColor · assortmentMatrix · columnGaps · setKey · findSet
- *   FAMILY_ORDER · colorFamily（**與 FC／CDA／color-palette 逐字相同**的色系分群）
+ *   FAMILY_ORDER · colorFamily（規則來自家族共用件 `color-family.js`）
  *   formatRgb · copyValue · buildCss · cssFilename
  */
 (function (global) {
@@ -122,42 +122,24 @@
   }
 
   /**
-   * 色系分群（沿色相環）；'neutral'＝黑/白/灰。
-   * **與 `faber-castell-color` / `caran-dache-color` / `color-palette` 逐字相同的規則**
-   * ——那三支的 lib 也是這樣分的，源頭是 `color-palette-lib` 的 hueFamily/FAMILY_ORDER。
-   * 要改門檻或界線，**去改共用的那條規則、四支一起改**，不要在這裡分岔。
+   * 色系分群——**規則來自家族共用件 `color-family.js`**（`window.ColorFamily`），
+   * 本檔只在這裡寫下 Finecolour 自己的門檻，不再重寫規則。
    *
-   * ⚠️ **這是算出來的，不是原廠分類。** EF600 壓克力筆原廠不發佈色系（也不發佈色名），
-   * 故 DB 的 `fd_color_family_idx` 對它恆為 NULL、**刻意不填**——`tb_color_family` 目前
-   * 只收官方分類（COPIC 17 群／Finecolour marker 23 群／ENMY 8 群皆有 `fd_source_idx`），
-   * 而 FC 與 CDA 根本沒有列：**家族既有的做法就是「算、不入庫」**。
+   * ⚠️ 這裡曾經自己抄過一份，而且抄出兩個問題：
+   *   ① 與 FC／CDA 的同一條規則有 10/120 不一致（門檻與額外的明度規則都是自己加的）；
+   *   ② 新增的 `function isAchromatic(color)` 與下方既有的 `isAchromatic(c)`（看官方灰系）
+   *      **同名同作用域**，後宣告者覆蓋前者——`sortColors('hue')` 的「無彩度殿後」
+   *      與對外匯出的 `isAchromatic` 語意都被靜默換掉（`CG267` 由 true 變成 false）。
+   * **同一條規則不要有第二份實作；同一個作用域不要有第二個同名函式。**
    *
-   * 為什麼不用別的推導法（兩條都在 EF600 上實測過）：
-   *   · 依編號每 10 個一組 → 11 個最大色相跳躍**沒有一個**落在 10 的倍數上；
-   *     編號是平滑的色相漸變，不是分好的群（120 色圖那 12 欄只是版面）。
-   *   · 借最接近的麥克筆的色系 → **81/120 的前三名色系彼此不一致**，
-   *     同一支色換個名次就換一個系。不是不準，是不穩。
+   * ⚠️ 這是**算出來的**分群，不是原廠分類。EF600 壓克力筆原廠不發佈色系，
+   * DB 的 `fd_color_family_idx` 對它恆為 NULL、刻意不填（治理 §9-Q14）。
    */
-  var FAMILY_ORDER = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta', 'neutral'];
-  function hueFamily(hue) {
-    var h = ((hue % 360) + 360) % 360;
-    if (h >= 345 || h < 15) return 'red';
-    if (h < 45) return 'orange';
-    if (h < 70) return 'yellow';
-    if (h < 165) return 'green';
-    if (h < 195) return 'cyan';
-    if (h < 255) return 'blue';
-    if (h < 290) return 'purple';
-    return 'magenta';
-  }
-  // 是否視為無彩度：飽和度 <0.17（黑/白/灰）。
-  // ⚠️ 與 FC 那份的唯一差異：FC 另有 `isMetallic(color) ||`（金屬色一律歸中性，
-  // 因為近白金屬在 HSL 近白處飽和度會被放大而誤判有彩度）。**Finecolour 沒有金屬色**，
-  // 故不需要那一句——這是刻意的差異，不是分岔。門檻與八條色相界線逐字相同。
-  function isAchromatic(color) { return rgbToHsl(color.r, color.g, color.b).s < 0.17; }
-  /** 某色屬哪個色系：無彩度 → 'neutral'，否則依色相分。 */
+  var FAMILY_ORDER = (global.ColorFamily && global.ColorFamily.FAMILY_ORDER) ||
+    ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta', 'neutral'];
+  var FAMILY_SAT_MIN = 0.17;          // 本 app 的無彩度門檻（color-palette 用 0.12）
   function colorFamily(color) {
-    return isAchromatic(color) ? 'neutral' : hueFamily(rgbToHsl(color.r, color.g, color.b).h);
+    return global.ColorFamily.familyOf(color.r, color.g, color.b, { satMin: FAMILY_SAT_MIN });
   }
 
   // ---- 色彩換算（與 FC / CDA 兩支 lib 逐字相同） --------------------------

@@ -191,25 +191,17 @@
   }
 
   // 色系分群（沿色相環）；'neutral'＝黑/白/灰。
-  var FAMILY_ORDER = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta', 'neutral'];
-  function hueFamily(hue) {
-    var h = ((hue % 360) + 360) % 360;
-    if (h >= 345 || h < 15) return 'red';
-    if (h < 45) return 'orange';
-    if (h < 70) return 'yellow';
-    if (h < 165) return 'green';
-    if (h < 195) return 'cyan';
-    if (h < 255) return 'blue';
-    if (h < 290) return 'purple';
-    return 'magenta';
-  }
-  // 是否視為無彩度：飽和度 <0.17（黑/白/灰）。
+  // 色系分群——**規則來自家族共用件 `color-family.js`**（`window.ColorFamily`）。
+  // 本檔只寫下 CDA 自己的無彩度門檻。
+  var FAMILY_ORDER = (window.ColorFamily && window.ColorFamily.FAMILY_ORDER) ||
+    ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'magenta', 'neutral'];
+  var FAMILY_SAT_MIN = 0.17;          // 本 app 的無彩度門檻（color-palette 用 0.12）
   function isAchromatic(color) {
-    return rgbToHsl(color.r, color.g, color.b).s < 0.17;
+    return rgbToHsl(color.r, color.g, color.b).s < FAMILY_SAT_MIN;
   }
   // 某色屬哪個色系：無彩度 → 'neutral'，否則依色相分。
   function colorFamily(color) {
-    return isAchromatic(color) ? 'neutral' : hueFamily(rgbToHsl(color.r, color.g, color.b).h);
+    return window.ColorFamily.familyOf(color.r, color.g, color.b, { satMin: FAMILY_SAT_MIN });
   }
 
   var SORT_MODES = ['code', 'hue', 'lightness', 'family', 'hex'];
