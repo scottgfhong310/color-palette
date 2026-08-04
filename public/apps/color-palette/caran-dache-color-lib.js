@@ -23,7 +23,7 @@
  *
  * Public API：
  *   CaranDacheColorLib.FOLDER · SORT_MODES（['code','hue','lightness','family','hex']）· FAMILY_ORDER
- *   filter(colors, query) → Color[]              依色號或色名（en/zh/ja）過濾（不改輸入、不分大小寫）
+ *   filter(colors, query) → Color[]              依色號／色名（en/zh/ja）／hex 過濾（不改輸入、不分大小寫）
  *   sortColors(colors, mode) → Color[]           依 mode 排序（不改輸入）
  *   colorFamily(color) → 'red'|…|'neutral'       某色屬哪個色系（s<0.17 → neutral）
  *   rgbToHsl(r,g,b) → {h,s,l}
@@ -56,7 +56,8 @@
       return (c.code && c.code.toLowerCase().indexOf(q) !== -1) ||
              (c.name && c.name.toLowerCase().indexOf(q) !== -1) ||
              (c.nameZh && c.nameZh.toLowerCase().indexOf(q) !== -1) ||
-             (c.nameJa && c.nameJa.toLowerCase().indexOf(q) !== -1);
+             (c.nameJa && c.nameJa.toLowerCase().indexOf(q) !== -1) ||
+             (c.hex && c.hex.toLowerCase().indexOf(q) !== -1);
     });
   }
 

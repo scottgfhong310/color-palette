@@ -16,7 +16,7 @@
  *
  * Public API：
  *   FaberCastellCssLib.FOLDER · SORT_MODES（['code','hue','lightness','family','hex']）· FAMILY_ORDER
- *   filter(colors, query) → Color[]              依色號或色名過濾（不改輸入、不分大小寫）
+ *   filter(colors, query) → Color[]              依色號／色名／hex 過濾（不改輸入、不分大小寫）
  *   sortColors(colors, mode) → Color[]           依 mode 排序（不改輸入）：色號 / 色相光譜 / 明度 / 色系分群 / hex 原始值
  *   colorFamily(color) → 'red'|…|'neutral'       某色屬哪個色系（金屬色或 s<0.17 → neutral）
  *   setIndex(colors) → [{line,series,sizes:[{size,count}]}]  套組索引（顏色→套組 的反向）
@@ -51,7 +51,8 @@
       return c.code.toLowerCase().indexOf(q) !== -1 ||
              c.name.toLowerCase().indexOf(q) !== -1 ||
              (c.nameZh && c.nameZh.toLowerCase().indexOf(q) !== -1) ||
-             (c.nameJa && c.nameJa.toLowerCase().indexOf(q) !== -1);
+             (c.nameJa && c.nameJa.toLowerCase().indexOf(q) !== -1) ||
+             (c.hex && c.hex.toLowerCase().indexOf(q) !== -1);
     });
   }
 
