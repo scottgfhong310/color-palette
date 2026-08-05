@@ -19,6 +19,7 @@ I18n.register('ja', {
   'collection.trend.warmer': '最近は暖色寄り', 'collection.trend.cooler': '最近は寒色寄り', 'collection.trend.more-vivid': '最近は鮮やか', 'collection.trend.more-muted': '最近は落ち着き',
   'tool.mode': 'ライト / ダーク切替',
   'tool.lang': '言語',
+  'tool.more': 'その他のツール',
   'tool.clear': '/upload/color-palette を空にする',
 
   'method.median': '色系統の代表色',

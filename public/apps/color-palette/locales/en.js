@@ -19,6 +19,7 @@ I18n.register('en', {
   'collection.trend.warmer': 'trending warmer', 'collection.trend.cooler': 'trending cooler', 'collection.trend.more-vivid': 'trending more vivid', 'collection.trend.more-muted': 'trending more muted',
   'tool.mode': 'Toggle light / dark',
   'tool.lang': 'Language',
+  'tool.more': 'More tools',
   'tool.clear': 'Clear /upload/color-palette',
 
   'method.median': 'Color families',

@@ -19,6 +19,7 @@ I18n.register('zh-Hant', {
   'collection.trend.warmer': '近期偏暖', 'collection.trend.cooler': '近期偏冷', 'collection.trend.more-vivid': '近期偏鮮', 'collection.trend.more-muted': '近期偏濁',
   'tool.mode': '切換 light / dark',
   'tool.lang': '語言',
+  'tool.more': '更多工具',
   'tool.clear': '清空 /upload/color-palette',
 
   'method.median': '色族代表',
