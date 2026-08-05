@@ -23,6 +23,7 @@
  *
  * Public API：
  *   CaranDacheColorLib.FOLDER · SORT_MODES（['code','hue','lightness','family','hex']）· FAMILY_ORDER
+ *   codesInSeries · seriesGaps · seriesMatrix        系列收錄對照（sets.html）
  *   filter(colors, query) → Color[]              依色號／色名（en/zh/ja）／hex 過濾（不改輸入、不分大小寫）
  *   sortColors(colors, mode) → Color[]           依 mode 排序（不改輸入）
  *   colorFamily(color) → 'red'|…|'neutral'       某色屬哪個色系（s<0.17 → neutral）
@@ -205,6 +206,56 @@
     return window.ColorFamily.familyOf(color.r, color.g, color.b, { satMin: FAMILY_SAT_MIN });
   }
 
+  // ---- 系列收錄對照（sets.html 用；純函式、不碰 DOM） ---------------------
+  //
+  // ⚠️ **CDA 沒有「套組」這種資料**——`tb_assortment` 對本品牌是 0 列。
+  // FC／COPIC／finecolour 的 `sets.html` 比的是「盒裝套組收錄了哪些色」；
+  // CDA 能比、而且更該比的是**系列**：同一個正典色碼，哪幾條系列有出。
+  //
+  // 而且 CDA 的格子放得進比「有／沒有」更多的東西：**同色碼跨系列是不同顏色**
+  // （治理 §3.1），`CDA_CANONICAL[i].series` 就是每條系列對該碼的實際 hex。
+  // 所以 cells 存的是**顏色**不是布林——那條規則因此在畫面上看得見，不必用文字說。
+
+  /** 某條系列收錄了哪些正典色碼。 */
+  function codesInSeries(canonical, seriesId) {
+    return (canonical || [])
+      .filter(function (c) { return c.series && c.series[seriesId]; })
+      .map(function (c) { return c.code; });
+  }
+
+  /**
+   * 以某條系列為基準，算出每條系列「相對它還缺幾色」。
+   * 0 ＝ 完全涵蓋基準系列。與 faber-castell-color 的 columnGaps 同義。
+   */
+  function seriesGaps(canonical, seriesIds, baseId) {
+    var base = codesInSeries(canonical, baseId);
+    var out = {};
+    (seriesIds || []).forEach(function (id) {
+      var have = {};
+      codesInSeries(canonical, id).forEach(function (code) { have[code] = 1; });
+      out[id] = base.filter(function (code) { return !have[code]; }).length;
+    });
+    return out;
+  }
+
+  /**
+   * 系列矩陣：列＝正典色碼、`cells[系列 id]` ＝ **該系列產出的 hex**（沒出就是 null）。
+   * `opts.codes` 可指定列（未選基準時要列出全部 227 個碼）；未給就用基準系列的色單。
+   */
+  function seriesMatrix(canonical, seriesIds, baseId, opts) {
+    var byCode = {};
+    (canonical || []).forEach(function (c) { byCode[c.code] = c; });
+    var codes = (opts && opts.codes) ? opts.codes.slice() : codesInSeries(canonical, baseId);
+    return codes.map(function (code) {
+      var c = byCode[code] || {};
+      var row = { code: code, canon: c, cells: {} };
+      (seriesIds || []).forEach(function (id) {
+        row.cells[id] = (c.series && c.series[id]) || null;
+      });
+      return row;
+    });
+  }
+
   var SORT_MODES = ['code', 'hue', 'lightness', 'family', 'hex'];
 
   // 依 mode 排序（純函式、不改輸入）：
@@ -299,6 +350,9 @@
     filter: filter,
     sortColors: sortColors,
     colorFamily: colorFamily,
+    codesInSeries: codesInSeries,
+    seriesGaps: seriesGaps,
+    seriesMatrix: seriesMatrix,
     hexToRgb: hexToRgb,
     rgbToHsl: rgbToHsl,
     rgbToLab: rgbToLab,
