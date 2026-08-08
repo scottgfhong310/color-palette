@@ -84,6 +84,7 @@ check materialize-dark.css        "$FAM/materialize-dark.css"        "nodeapp-we
 check side-tool.css               "$FAM/side-tool.css"               "nodeapp-webapp-family（§5.5）"
 check side-tool.js                "$FAM/side-tool.js"                "nodeapp-webapp-family（§5.5）"
 check i18n.js                     "$FAM/i18n.js"                     "nodeapp-webapp-family（locales/*.js 本 app 自維護，不比）"
+check color-metric.js             "$FAM/color-metric.js"             "nodeapp-webapp-family（§4 A 類；⚠️ <script> 必須早於 color-palette-lib.js）"
 check color-family.js             "$FAM/color-family.js"             "nodeapp-webapp-family（§4 A 類；⚠️ <script> 必須早於 color-palette-lib.js）"
 check faber-castell-color-lib.js  "$FC/faber-castell-color-lib.js"   "faber-castell-color（nearestFC）"
 check data/fc-colors.js           "$FC/data/fc-colors.js"            "faber-castell-color（由 db_artcolor 匯出）→ 跑該 repo 的 sync-copies.sh"

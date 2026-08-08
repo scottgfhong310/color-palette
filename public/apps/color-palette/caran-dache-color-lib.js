@@ -45,6 +45,21 @@
  */
 (function (window) {
   'use strict';
+  // ---- 色彩度量核心：家族共用件 color-metric.js（權威版在家族 repo 根）------
+  //
+  // 這一段（hexToRgb／relLuminance／contrastRatio／pickTextColor／rgbToHsl／
+  // rgbToLab／deltaE／deltaEBand）原本在六支 lib 裡各有一份「號稱逐字相同」的複製。
+  // 2026-08-08 實查發現其中四個函式已分成兩派（詳見共用件檔頭），故抽出。
+  // 下面保留同名的薄包裝，**本檔的 Public API 與所有呼叫端一行都不必改**。
+  //
+  // ⚠️ 載入順序是硬條件：本檔在**模組載入時**就取 window.ColorMetric，
+  //    <script src="color-metric.js"> 必須排在本檔之前。
+  if (!window.ColorMetric) {
+    throw new Error('caran-dache-color-lib.js 需要共用件 color-metric.js，' +
+      '且 <script> 必須排在本檔之前（見 SHARED_LIBRARY_GUIDELINES §4）');
+  }
+  var CM = window.ColorMetric;
+
 
   var FOLDER = 'caran-dache-color';
   var CSS_FILENAME = 'caran_dache_colors.css';
@@ -63,101 +78,24 @@
   }
 
   // ---- 顏色運算 ------------------------------------------------------------
-  function hexToRgb(hex) {
-    if (typeof hex !== 'string') return null;
-    var m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-    if (!m) return null;
-    var n = parseInt(m[1], 16);
-    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-  }
+  function hexToRgb(hex) { return CM.hexToRgb(hex); }
 
-  function _chan(v) {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  }
-  function relLuminance(r, g, b) {
-    return 0.2126 * _chan(r) + 0.7152 * _chan(g) + 0.0722 * _chan(b);
-  }
+  function relLuminance(r, g, b) { return CM.relLuminance(r, g, b); }
   // 與黑（fgIsWhite=false）或白（true）前景的 WCAG 對比比值。
-  function contrastRatio(r, g, b, fgIsWhite) {
-    var L = relLuminance(r, g, b);
-    return fgIsWhite ? 1.05 / (L + 0.05) : (L + 0.05) / 0.05;
-  }
+  function contrastRatio(r, g, b, fgIsWhite) { return CM.contrastRatio(r, g, b, fgIsWhite); }
   // 白字與黑字誰的對比高就用誰（含 1:1 邊界，避免中間灰模糊）。
-  function pickTextColor(color) {
-    return contrastRatio(color.r, color.g, color.b, true) >=
-           contrastRatio(color.r, color.g, color.b, false) ? '#ffffff' : '#000000';
-  }
+  function pickTextColor(color) { return CM.pickTextColor(color); }
 
   // sRGB → HSL（h:0..360, s/l:0..1）
-  function rgbToHsl(r, g, b) {
-    r /= 255; g /= 255; b /= 255;
-    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, h = 0, s = 0;
-    if (mx !== mn) {
-      var d = mx - mn;
-      s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
-      switch (mx) {
-        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        default: h = (r - g) / d + 4;
-      }
-      h *= 60;
-    }
-    return { h: h, s: s, l: l };
-  }
+  function rgbToHsl(r, g, b) { return CM.rgbToHsl(r, g, b); }
 
   // ---- CIELAB / CIEDE2000（純函式；為未來「最接近 Caran d’Ache 色」比對器 nearestCDA 預留） ----
   // sRGB → CIELAB（D65）。
-  function rgbToLab(r, g, b) {
-    function lin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
-    var R = lin(r), G = lin(g), B = lin(b);
-    var X = (R * 0.4124 + G * 0.3576 + B * 0.1805) / 0.95047;
-    var Y = (R * 0.2126 + G * 0.7152 + B * 0.0722);
-    var Z = (R * 0.0193 + G * 0.1192 + B * 0.9505) / 1.08883;
-    function f(t) { return t > 0.008856 ? Math.cbrt(t) : (7.787 * t + 16 / 116); }
-    var fx = f(X), fy = f(Y), fz = f(Z);
-    return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
-  }
+  function rgbToLab(r, g, b) { return CM.rgbToLab(r, g, b); }
   // CIEDE2000（ΔE00）——感知最準的色差（kL=kC=kH=1）。
-  function deltaE(labA, labB) {
-    var d2r = Math.PI / 180, r2d = 180 / Math.PI;
-    var L1 = labA[0], a1 = labA[1], b1 = labA[2];
-    var L2 = labB[0], a2 = labB[1], b2 = labB[2];
-    var C1 = Math.sqrt(a1 * a1 + b1 * b1), C2 = Math.sqrt(a2 * a2 + b2 * b2);
-    var Cbar = (C1 + C2) / 2;
-    var Cbar7 = Math.pow(Cbar, 7);
-    var G = 0.5 * (1 - Math.sqrt(Cbar7 / (Cbar7 + 6103515625)));   // 25^7 = 6103515625
-    var a1p = a1 * (1 + G), a2p = a2 * (1 + G);
-    var C1p = Math.sqrt(a1p * a1p + b1 * b1), C2p = Math.sqrt(a2p * a2p + b2 * b2);
-    function hp(bb, ap) { if (bb === 0 && ap === 0) return 0; var h = Math.atan2(bb, ap) * r2d; return h < 0 ? h + 360 : h; }
-    var h1p = hp(b1, a1p), h2p = hp(b2, a2p);
-    var dLp = L2 - L1, dCp = C2p - C1p;
-    var dhp;
-    if (C1p * C2p === 0) dhp = 0;
-    else { dhp = h2p - h1p; if (dhp > 180) dhp -= 360; else if (dhp < -180) dhp += 360; }
-    var dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin((dhp / 2) * d2r);
-    var Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
-    var hbp;
-    if (C1p * C2p === 0) hbp = h1p + h2p;
-    else if (Math.abs(h1p - h2p) <= 180) hbp = (h1p + h2p) / 2;
-    else hbp = (h1p + h2p < 360) ? (h1p + h2p + 360) / 2 : (h1p + h2p - 360) / 2;
-    var T = 1 - 0.17 * Math.cos((hbp - 30) * d2r) + 0.24 * Math.cos((2 * hbp) * d2r)
-          + 0.32 * Math.cos((3 * hbp + 6) * d2r) - 0.20 * Math.cos((4 * hbp - 63) * d2r);
-    var dTheta = 30 * Math.exp(-Math.pow((hbp - 275) / 25, 2));
-    var Cbp7 = Math.pow(Cbp, 7);
-    var Rc = 2 * Math.sqrt(Cbp7 / (Cbp7 + 6103515625));
-    var Sl = 1 + (0.015 * Math.pow(Lbp - 50, 2)) / Math.sqrt(20 + Math.pow(Lbp - 50, 2));
-    var Sc = 1 + 0.045 * Cbp;
-    var Sh = 1 + 0.015 * Cbp * T;
-    var Rt = -Math.sin((2 * dTheta) * d2r) * Rc;
-    var kL = 1, kC = 1, kH = 1;
-    var tL = dLp / (kL * Sl), tC = dCp / (kC * Sc), tH = dHp / (kH * Sh);
-    return Math.sqrt(tL * tL + tC * tC + tH * tH + Rt * tC * tH);
-  }
+  function deltaE(labA, labB) { return CM.deltaE(labA, labB); }
   // ΔE 品質級距（供 UI 著色 / i18n）：very ≤2 / close ≤5 / noticeable ≤10 / far（與 FC nearestFC 同制）
-  function deltaEBand(dE) {
-    return dE <= 2 ? 'very' : dE <= 5 ? 'close' : dE <= 10 ? 'noticeable' : 'far';
-  }
+  function deltaEBand(dE) { return CM.deltaEBand(dE); }
 
   // ---- 最接近 Caran d’Ache 色比對（nearestCDA，v2） -----------------------
   // 參考庫＝系列色（買得到的實體筆），非正典平均色。Lab 依 colors 陣列 identity 快取。
