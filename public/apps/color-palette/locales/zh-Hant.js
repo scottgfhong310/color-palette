@@ -102,7 +102,7 @@ I18n.register('zh-Hant', {
   'toast.deleteFail': '刪除失敗：{m}',
   'detail.sub': '{method} · {n} 色 · {size}',
 
-  'lightbox.hint': '滾輪縮放 · 拖曳平移 · 滑過取色 · 點圖釘色 · 點色系定位 · 點色票定位並複製 · Esc 關閉',
+  'lightbox.hint': '滾輪縮放 · 拖曳平移 · 滑過取色 · 點圖釘色並複製 · 點色系定位 · 點色票定位並複製 · Esc 關閉',
   'lightbox.copied': '已複製 {hex}',
   'lightbox.unpin': '取消釘選',
   'lightbox.copyHint': '點擊複製色碼',

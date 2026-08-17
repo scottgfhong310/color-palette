@@ -1102,12 +1102,15 @@
   }
   function hidePick() { $('#lightbox-pick').prop('hidden', true).removeClass('is-pinned').attr('title', ''); setHotSwatch(-1); }
   // 釘住游標所在點的顏色（hover 是即時預覽；釘住的固定在頂端供比對／複製）
+  // 釘住的同時順手複製 css hex——比照色票列（§7）：點下去的意圖就是「我要這個色碼」，
+  // 不必再去點一次取色頭；取色頭仍可再點一次重複製。
   function pinAt(clientX, clientY) {
     var s = lbSampleAt(clientX, clientY);
     if (!s) return;
     lbPinned = { hex: s.hex, idx: Lib.nearestSwatchIndex(s.r, s.g, s.b, lbColors) };
     showPick(s.hex, true);
     setHotSwatch(lbPinned.idx);
+    copyHex(s.hex);
   }
   function unpin() { lbPinned = null; hidePick(); }
   // 複製單一 css hex（大寫；比照 copyAllDetail 的 clipboard 慣例）——取色頭與色票列共用

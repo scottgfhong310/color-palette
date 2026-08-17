@@ -102,7 +102,7 @@ I18n.register('en', {
   'toast.deleteFail': 'Delete failed: {m}',
   'detail.sub': '{method} · {n} colors · {size}',
 
-  'lightbox.hint': 'Scroll to zoom · drag to pan · hover to pick · click image to pin · click a family to locate · click a swatch to locate and copy · Esc to close',
+  'lightbox.hint': 'Scroll to zoom · drag to pan · hover to pick · click image to pin and copy · click a family to locate · click a swatch to locate and copy · Esc to close',
   'lightbox.copied': 'Copied {hex}',
   'lightbox.unpin': 'Unpin colour',
   'lightbox.copyHint': 'Click to copy hex',
