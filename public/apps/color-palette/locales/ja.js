@@ -94,7 +94,7 @@ I18n.register('ja', {
   'toast.mdFail': '.md の保存に失敗：{m}',
   'detail.png': 'PNG カラーカードをダウンロード',
   'toast.copiedAll': '{n} 色をコピーしました',
-  'toast.copyFail': 'コピーに失敗',
+  'toast.copyFail': 'コピーに失敗しました',
   'toast.pngExported': 'PNG カラーカードを保存しました',
   'detail.delete': '削除',
   'confirm.deleteOne': '「{n}」を削除しますか？この操作は取り消せません。',
