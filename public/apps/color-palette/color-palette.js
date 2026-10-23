@@ -769,15 +769,42 @@
     loadDetailPixels(f, function () { if (detailName === f.name) { renderDetailPalette(); renderPortrait(); } });  // 像素載入後即時萃取＋肖像
     M.Modal.getInstance(document.getElementById('detail-modal')).open();
   }
+  /* 複製：先試 clipboard API，不存在或被拒絕才退回 execCommand（DESIGN_GUIDELINES「複製鈕的 clipboard 退路」）。
+     ⚠️ 非 HTTPS／非 localhost（例如 http://192.168.0.x:3001）navigator.clipboard 是 undefined——
+     直接呼叫 writeText 會丟 TypeError，畫面上什麼都不會發生（沒有 toast、也沒有複製）。
+     暫用的 textarea 設 readonly（iOS 才不會彈鍵盤），並掛在焦點所在的 modal 裡
+     （Materialize 的 modal 會把跑到它外面的焦點搶回去，掛在 body 上就選不住）。 */
+  function execCommandCopy(text) {
+    var a = document.activeElement;
+    var host = (a && a.closest && a.closest('.modal')) || document.body;
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '0';
+    ta.style.left = '0';
+    ta.style.opacity = '0';
+    host.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    host.removeChild(ta);
+    return ok ? Promise.resolve() : Promise.reject(new Error('copy failed'));
+  }
+  function writeClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () { return execCommandCopy(text); });
+    }
+    return execCommandCopy(text);
+  }
+
   // 複製目前視圖全部色碼（每行一個 hex）
   function copyAllDetail() {
     if (!detailColors.length) return;
     var text = detailColors.map(function (c) { return c.hex.toUpperCase(); }).join('\n');
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text)
-        .then(function () { toast('toast.copiedAll', 'teal', { n: detailColors.length }); })
-        .catch(function () { toast('toast.copyFail', 'red'); });
-    } else { toast('toast.copyFail', 'red'); }
+    writeClipboard(text)
+      .then(function () { toast('toast.copiedAll', 'teal', { n: detailColors.length }); })
+      .catch(function () { toast('toast.copyFail', 'red'); });
   }
   // 產生目前視圖的色票 .md：左右兩欄——圖在左（寬約 A4 橫向 1/3），色票表在右
   //   整塊用 HTML（zero-md 把 raw HTML 區塊原樣渲染）；務必**單一連續區塊、無內部空行**（否則 marked 會提前結束 HTML 區塊）
@@ -1117,11 +1144,9 @@
   function copyHex(hex) {
     var t = String(hex || '').toUpperCase();
     if (!t) return;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(t)
-        .then(function () { toast('lightbox.copied', 'teal', { hex: t }); })
-        .catch(function () { toast('toast.copyFail', 'red'); });
-    } else { toast('toast.copyFail', 'red'); }
+    writeClipboard(t)
+      .then(function () { toast('lightbox.copied', 'teal', { hex: t }); })
+      .catch(function () { toast('toast.copyFail', 'red'); });
   }
   function copyPinnedHex() { if (lbPinned) copyHex(lbPinned.hex); }
   function setHotSwatch(idx) {
