@@ -772,11 +772,14 @@
   /* 複製：先試 clipboard API，不存在或被拒絕才退回 execCommand（DESIGN_GUIDELINES「複製鈕的 clipboard 退路」）。
      ⚠️ 非 HTTPS／非 localhost（例如 http://192.168.0.x:3001）navigator.clipboard 是 undefined——
      直接呼叫 writeText 會丟 TypeError，畫面上什麼都不會發生（沒有 toast、也沒有複製）。
-     暫用的 textarea 設 readonly（iOS 才不會彈鍵盤），並掛在焦點所在的 modal 裡
-     （Materialize 的 modal 會把跑到它外面的焦點搶回去，掛在 body 上就選不住）。 */
+     暫用的 textarea 設 readonly（iOS 才不會彈鍵盤），並掛在最上層開著的 modal 裡
+     （Materialize 的 modal 會把跑到它外面的焦點搶回去，掛在 body 上就選不住）。
+     ⚠️ 不用 activeElement 找 modal：Safari／iOS 點按鈕不會 focus 它，上一次複製後焦點也會掉回 body
+     ⇒ 那時會掛到 body、選取落空，而 execCommand 照樣回 true——所以另外確認焦點與全選（2026-10-26 實測）。 */
   function execCommandCopy(text) {
-    var a = document.activeElement;
-    var host = (a && a.closest && a.closest('.modal')) || document.body;
+    var open = [].slice.call(document.querySelectorAll('.modal.open'));
+    open.sort(function (a, b) { return (+b.style.zIndex || 0) - (+a.style.zIndex || 0); });
+    var host = open[0] || document.body;
     var ta = document.createElement('textarea');
     ta.value = text;
     ta.setAttribute('readonly', '');
@@ -785,9 +788,12 @@
     ta.style.left = '0';
     ta.style.opacity = '0';
     host.appendChild(ta);
+    ta.focus({ preventScroll: true });
     ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    var selected = document.activeElement === ta && ta.selectionStart === 0 && ta.selectionEnd === ta.value.length;
     var ok = false;
-    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    try { ok = selected && document.execCommand('copy'); } catch (e) { ok = false; }
     host.removeChild(ta);
     return ok ? Promise.resolve() : Promise.reject(new Error('copy failed'));
   }
